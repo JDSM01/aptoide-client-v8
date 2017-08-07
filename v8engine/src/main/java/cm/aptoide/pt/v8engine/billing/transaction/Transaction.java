@@ -1,5 +1,7 @@
 package cm.aptoide.pt.v8engine.billing.transaction;
 
+import android.util.Log;
+
 public class Transaction {
   private final String productId;
   private final String payerId;

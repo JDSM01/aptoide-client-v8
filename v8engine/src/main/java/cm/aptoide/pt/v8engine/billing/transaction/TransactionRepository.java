@@ -5,6 +5,8 @@
 
 package cm.aptoide.pt.v8engine.billing.transaction;
 
+import android.util.Log;
+
 import cm.aptoide.pt.v8engine.billing.BillingSyncScheduler;
 import cm.aptoide.pt.v8engine.billing.Payer;
 import cm.aptoide.pt.v8engine.billing.Product;

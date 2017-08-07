@@ -7,6 +7,10 @@ package cm.aptoide.pt.v8engine.billing;
 
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+
+import java.util.Collections;
+import java.util.List;
+
 import cm.aptoide.pt.dataprovider.interfaces.TokenInvalidator;
 import cm.aptoide.pt.dataprovider.model.v3.ErrorResponse;
 import cm.aptoide.pt.dataprovider.model.v3.InAppBillingPurchasesResponse;
@@ -27,8 +31,6 @@ import cm.aptoide.pt.v8engine.billing.product.InAppProduct;
 import cm.aptoide.pt.v8engine.billing.product.InAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.PaidAppProduct;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
-import java.util.Collections;
-import java.util.List;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;

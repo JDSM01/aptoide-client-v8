@@ -141,6 +141,9 @@ dependencies {
   compile project(path: ':crashreports', configuration: 'release')
   compile project(path: ':downloadmanager', configuration: 'release')
 
+  /////roboguice dependecies Jose///////////////////////////////////////////////////////////////
+  compile 'org.roboguice:roboguice:3.+'
+
   //
   // custom libs in folders
   //
@@ -204,6 +207,9 @@ dependencies {
   compile("com.paypal.sdk:paypal-android-sdk:${PAYPAL_SDK}") {
     exclude group: 'io.card'
   }
+
+  //coinbase SDK
+  compile 'com.coinbase.android:coinbase-android-sdk:1.0.1' /////////////////////////Jose//////////////////
 
   // Flurry Android sdk
   compile "com.flurry.android:analytics:${FLURRY_VERSION}"

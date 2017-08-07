@@ -29,6 +29,29 @@ import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
 import android.util.SparseArray;
 import android.view.WindowManager;
+
+import com.crashlytics.android.answers.Answers;
+import com.facebook.appevents.AppEventsLogger;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flurry.android.FlurryAgent;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.Scopes;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Scope;
+import com.jakewharton.rxrelay.PublishRelay;
+import com.liulishuo.filedownloader.FileDownloader;
+import com.liulishuo.filedownloader.services.DownloadMgrInitialParams;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import cm.aptoide.accountmanager.AccountDataPersist;
 import cm.aptoide.accountmanager.AccountFactory;
 import cm.aptoide.accountmanager.AccountManagerService;
@@ -102,12 +125,15 @@ import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationFactory;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationRepository;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationService;
+import cm.aptoide.pt.v8engine.billing.authorization.BitcoinAuthorizationService;
 import cm.aptoide.pt.v8engine.billing.authorization.InMemoryAuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.V3AuthorizationService;
 import cm.aptoide.pt.v8engine.billing.external.ExternalBillingSerializer;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
 import cm.aptoide.pt.v8engine.billing.sync.BillingSyncFactory;
 import cm.aptoide.pt.v8engine.billing.sync.BillingSyncManager;
+import cm.aptoide.pt.v8engine.billing.transaction.BitCoinTransactionPersistence;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.transaction.RealmTransactionPersistence;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionFactory;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionMapper;
@@ -176,28 +202,8 @@ import cm.aptoide.pt.v8engine.view.entry.EntryActivity;
 import cm.aptoide.pt.v8engine.view.entry.EntryPointChooser;
 import cm.aptoide.pt.v8engine.view.recycler.DisplayableWidgetMapping;
 import cn.dreamtobe.filedownloader.OkHttp3Connection;
-import com.crashlytics.android.answers.Answers;
-import com.facebook.appevents.AppEventsLogger;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flurry.android.FlurryAgent;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.Scopes;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.Scope;
-import com.jakewharton.rxrelay.PublishRelay;
-import com.liulishuo.filedownloader.FileDownloader;
-import com.liulishuo.filedownloader.services.DownloadMgrInitialParams;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import okhttp3.Cache;
@@ -283,8 +289,11 @@ public abstract class V8Engine extends Application {
   private BillingSyncManager billingSyncManager;
   private TimelineRepositoryFactory timelineRepositoryFactory;
   private BillingIdResolver billingiIdResolver;
+  private BitCoinTransactionPersistence bitTransactionPersistence;
+  private BitcoinTransactionService bitTransactionService;
+  private AuthorizationService bitAuthorizationService;
 
-  /**
+    /**
    * call after this instance onCreate()
    */
   protected void activateLogger(boolean enable) {
@@ -812,6 +821,16 @@ public abstract class V8Engine extends Application {
     return billingSyncManager;
   }
 
+    public BitcoinTransactionService getBitTransactionService() {
+        if (bitTransactionService == null) {
+            bitTransactionService =
+                    new BitcoinTransactionService(getTransactionMapper(), getBaseBodyInterceptorV3(),
+                            WebService.getDefaultConverter(), getDefaultClient(), getTokenInvalidator(),
+                            getDefaultSharedPreferences(), getTransactionFactory());
+        }
+        return bitTransactionService;
+    }
+
   public AuthorizationPersistence getAuthorizationPersistence() {
     if (authorizationPersistence == null) {
       authorizationPersistence =
@@ -864,6 +883,16 @@ public abstract class V8Engine extends Application {
     return transactionService;
   }
 
+  public AuthorizationService getBitcoinAuthorizationService() {
+    if (bitAuthorizationService == null) {
+      bitAuthorizationService =
+              new BitcoinAuthorizationService(getAuthorizationFactory(), getBaseBodyInterceptorV3(),
+                      getDefaultClient(), WebService.getDefaultConverter(), getTokenInvalidator(),
+                      getDefaultSharedPreferences());
+    }
+    return bitAuthorizationService;
+  }
+
   public TransactionMapper getTransactionMapper() {
     if (transactionMapper == null) {
       transactionMapper = new TransactionMapper(getTransactionFactory());
@@ -891,6 +920,15 @@ public abstract class V8Engine extends Application {
     }
     return database;
   }
+
+    public BitCoinTransactionPersistence getBitTransactionPersistence() {
+        if (bitTransactionPersistence == null) {
+            bitTransactionPersistence =
+                    new BitCoinTransactionPersistence(getBitTransactionService(), getDatabase(), getTransactionMapper(),
+                            getTransactionFactory());
+        }
+        return bitTransactionPersistence;
+    }
 
   public PackageRepository getPackageRepository() {
     if (packageRepository == null) {

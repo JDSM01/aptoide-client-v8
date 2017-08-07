@@ -2,12 +2,22 @@ package cm.aptoide.pt.v8engine.billing.view;
 
 import android.app.Activity;
 import android.os.Bundle;
+
+import com.paypal.android.sdk.payments.PayPalConfiguration;
+import com.paypal.android.sdk.payments.PayPalFuturePaymentActivity;
+import com.paypal.android.sdk.payments.PayPalPayment;
+import com.paypal.android.sdk.payments.PayPalService;
+import com.paypal.android.sdk.payments.PaymentConfirmation;
+
+import java.math.BigDecimal;
+
 import cm.aptoide.accountmanager.AptoideAccountManager;
 import cm.aptoide.pt.v8engine.BuildConfig;
 import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.Purchase;
+import cm.aptoide.pt.v8engine.billing.view.bitcoin.CoinbaseFragment;
 import cm.aptoide.pt.v8engine.billing.view.boacompra.BoaCompraFragment;
 import cm.aptoide.pt.v8engine.billing.view.braintree.BraintreeCreditCardFragment;
 import cm.aptoide.pt.v8engine.billing.view.mol.MolFragment;
@@ -15,12 +25,6 @@ import cm.aptoide.pt.v8engine.billing.view.paypal.PayPalFragment;
 import cm.aptoide.pt.v8engine.view.account.LoginActivity;
 import cm.aptoide.pt.v8engine.view.navigator.ActivityNavigator;
 import cm.aptoide.pt.v8engine.view.navigator.FragmentNavigator;
-import com.paypal.android.sdk.payments.PayPalConfiguration;
-import com.paypal.android.sdk.payments.PayPalFuturePaymentActivity;
-import com.paypal.android.sdk.payments.PayPalPayment;
-import com.paypal.android.sdk.payments.PayPalService;
-import com.paypal.android.sdk.payments.PaymentConfirmation;
-import java.math.BigDecimal;
 import rx.Observable;
 
 public class BillingNavigator {
@@ -59,6 +63,9 @@ public class BillingNavigator {
       case PaymentMethodMapper.PAYPAL:
         fragmentNavigator.navigateTo(PayPalFragment.create(bundle));
         break;
+      case PaymentMethodMapper.BITCOIN:
+            fragmentNavigator.navigateTo(CoinbaseFragment.create(bundle, paymentMethod.getId()));
+          break;
       case PaymentMethodMapper.MOL_POINTS:
         fragmentNavigator.navigateTo(MolFragment.create(bundle));
         break;

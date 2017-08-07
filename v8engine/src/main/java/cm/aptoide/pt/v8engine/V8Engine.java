@@ -30,6 +30,29 @@ import android.text.format.DateUtils;
 import android.util.DisplayMetrics;
 import android.util.SparseArray;
 import android.view.WindowManager;
+
+import com.crashlytics.android.answers.Answers;
+import com.facebook.appevents.AppEventsLogger;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flurry.android.FlurryAgent;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.Scopes;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Scope;
+import com.jakewharton.rxrelay.PublishRelay;
+import com.liulishuo.filedownloader.FileDownloader;
+import com.liulishuo.filedownloader.services.DownloadMgrInitialParams;
+import com.seatgeek.sixpack.SixpackBuilder;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import cm.aptoide.accountmanager.AccountDataPersist;
 import cm.aptoide.accountmanager.AccountFactory;
 import cm.aptoide.accountmanager.AccountManagerService;
@@ -90,22 +113,24 @@ import cm.aptoide.pt.v8engine.analytics.Analytics;
 import cm.aptoide.pt.v8engine.billing.AccountPayer;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
-import cm.aptoide.pt.v8engine.billing.BillingService;
 import cm.aptoide.pt.v8engine.billing.BillingSyncScheduler;
+import cm.aptoide.pt.v8engine.billing.BitcoinBillingService;
 import cm.aptoide.pt.v8engine.billing.Payer;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodSelector;
 import cm.aptoide.pt.v8engine.billing.PurchaseMapper;
 import cm.aptoide.pt.v8engine.billing.SharedPreferencesPaymentMethodSelector;
-import cm.aptoide.pt.v8engine.billing.V3BillingService;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationFactory;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationRepository;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationService;
+import cm.aptoide.pt.v8engine.billing.authorization.BitcoinAuthorizationService;
 import cm.aptoide.pt.v8engine.billing.authorization.RealmAuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.V3AuthorizationService;
 import cm.aptoide.pt.v8engine.billing.external.ExternalBillingSerializer;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
+import cm.aptoide.pt.v8engine.billing.transaction.BitCoinTransactionPersistence;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.transaction.RealmTransactionPersistence;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionFactory;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionMapper;
@@ -169,26 +194,6 @@ import cm.aptoide.pt.v8engine.view.entry.EntryActivity;
 import cm.aptoide.pt.v8engine.view.entry.EntryPointChooser;
 import cm.aptoide.pt.v8engine.view.recycler.DisplayableWidgetMapping;
 import cn.dreamtobe.filedownloader.OkHttp3Connection;
-import com.crashlytics.android.answers.Answers;
-import com.facebook.appevents.AppEventsLogger;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flurry.android.FlurryAgent;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.Scopes;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.Scope;
-import com.jakewharton.rxrelay.PublishRelay;
-import com.liulishuo.filedownloader.FileDownloader;
-import com.liulishuo.filedownloader.services.DownloadMgrInitialParams;
-import com.seatgeek.sixpack.SixpackBuilder;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.Setter;
 import okhttp3.Cache;
@@ -265,9 +270,12 @@ public abstract class V8Engine extends Application {
   private Database database;
   private TransactionFactory transactionFactory;
   private TransactionService v3TransactionService;
+  private BitcoinTransactionService bitTransactionService;
   private TransactionMapper transactionMapper;
   private AuthorizationService v3AuthorizationService;
+  private AuthorizationService bitAuthorizationService;
   private AuthorizationPersistence realmAuthorizationPersistence;
+  private BitCoinTransactionPersistence bitTransactionPersistence;
 
   /**
    * call after this instance onCreate()
@@ -767,28 +775,36 @@ public abstract class V8Engine extends Application {
   public Billing getBilling() {
 
     if (billing == null) {
-
+      //added getBitTransactionService and getRealmTransactionPersistenc to --> getBitTransactionPersistence
       final TransactionRepository transactionRepository =
-          new TransactionRepository(getRealmTransactionPersistence(), getBillingSyncScheduler(),
-              getAccountPayer(), getV3TransactionService());
-
+          new TransactionRepository(getBitTransactionPersistence(), getBillingSyncScheduler(),
+              getAccountPayer(), getBitTransactionService());
+      //added BitAuth
       final AuthorizationRepository authorizationRepository =
           new AuthorizationRepository(getBillingSyncScheduler(), getAccountPayer(),
-              getV3AuthorizationService(), getRealmAuthorizationPersistence());
+              getBitcoinAuthorizationService(), getRealmAuthorizationPersistence());
+      //changed V3Billing to bitBilling
 
-      final BillingService billingService =
-          new V3BillingService(getBaseBodyInterceptorV3(), getDefaultClient(),
+      final BitcoinBillingService billingService =
+          new BitcoinBillingService(getBaseBodyInterceptorV3(), getDefaultClient(),
               WebService.getDefaultConverter(), getTokenInvalidator(),
               getDefaultSharedPreferences(), new PurchaseMapper(getInAppBillingSerializer()),
               new ProductFactory(), getPackageRepository(), new PaymentMethodMapper(),
-              getResources());
+              getResources(), bitTransactionService);
+
+      /*final BillingService billingService =
+          new BitcoinBillingService(getBaseBodyInterceptorV3(), getDefaultClient(),
+              WebService.getDefaultConverter(), getTokenInvalidator(),
+              getDefaultSharedPreferences(), new PurchaseMapper(getInAppBillingSerializer()),
+              new ProductFactory(), getPackageRepository(), new PaymentMethodMapper(),
+              getResources(), bitTransactionService);*/
 
       final PaymentMethodSelector paymentMethodSelector =
           new SharedPreferencesPaymentMethodSelector(BuildConfig.DEFAULT_PAYMENT_ID,
               getDefaultSharedPreferences());
-
-      billing = new Billing(transactionRepository, billingService, authorizationRepository,
-          paymentMethodSelector, getRealmTransactionPersistence());
+      //changed to getBit-- from getReal...
+          billing = new Billing(transactionRepository, billingService, authorizationRepository,
+          paymentMethodSelector, getBitTransactionPersistence());
     }
     return billing;
   }
@@ -811,6 +827,16 @@ public abstract class V8Engine extends Application {
     return v3TransactionService;
   }
 
+  public BitcoinTransactionService getBitTransactionService() {
+    if (bitTransactionService == null) {
+      bitTransactionService =
+              new BitcoinTransactionService(getTransactionMapper(), getBaseBodyInterceptorV3(),
+                      WebService.getDefaultConverter(), getDefaultClient(), getTokenInvalidator(),
+                      getDefaultSharedPreferences(), getTransactionFactory());
+    }
+    return bitTransactionService;
+  }
+
   public AuthorizationService getV3AuthorizationService() {
     if (v3AuthorizationService == null) {
       v3AuthorizationService =
@@ -819,6 +845,16 @@ public abstract class V8Engine extends Application {
               getDefaultSharedPreferences());
     }
     return v3AuthorizationService;
+  }
+
+  public AuthorizationService getBitcoinAuthorizationService() {
+    if (bitAuthorizationService == null) {
+      bitAuthorizationService =
+              new BitcoinAuthorizationService(getAuthorizationFactory(), getBaseBodyInterceptorV3(),
+                      getDefaultClient(), WebService.getDefaultConverter(), getTokenInvalidator(),
+                      getDefaultSharedPreferences());
+    }
+    return bitAuthorizationService;
   }
 
   public TransactionMapper getTransactionMapper() {
@@ -842,6 +878,16 @@ public abstract class V8Engine extends Application {
               getTransactionFactory());
     }
     return realmTransactionPersistence;
+  }
+
+
+  public BitCoinTransactionPersistence getBitTransactionPersistence() {
+    if (bitTransactionPersistence == null) {
+      bitTransactionPersistence =
+              new BitCoinTransactionPersistence(getBitTransactionService(), getDatabase(), getTransactionMapper(),
+                      getTransactionFactory());
+    }
+    return bitTransactionPersistence;
   }
 
   public Database getDatabase() {

@@ -7,6 +7,8 @@ package cm.aptoide.pt.v8engine.billing;
 
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.util.Log;
+
 import cm.aptoide.pt.dataprovider.interfaces.TokenInvalidator;
 import cm.aptoide.pt.dataprovider.model.v3.ErrorResponse;
 import cm.aptoide.pt.dataprovider.model.v3.InAppBillingPurchasesResponse;

@@ -6,6 +6,8 @@
 package cm.aptoide.pt.v8engine.billing.view;
 
 import android.os.Bundle;
+import android.util.Log;
+
 import cm.aptoide.accountmanager.Account;
 import cm.aptoide.accountmanager.AptoideAccountManager;
 import cm.aptoide.pt.v8engine.billing.Billing;

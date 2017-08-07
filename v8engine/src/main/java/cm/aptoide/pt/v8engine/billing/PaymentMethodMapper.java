@@ -5,10 +5,11 @@
 
 package cm.aptoide.pt.v8engine.billing;
 
-import cm.aptoide.pt.dataprovider.model.v3.PaymentServiceResponse;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import cm.aptoide.pt.dataprovider.model.v3.PaymentServiceResponse;
 
 public class PaymentMethodMapper {
 
@@ -18,6 +19,7 @@ public class PaymentMethodMapper {
   public static final int BOA_COMPRA_GOLD = 9;
   public static final int MOL_POINTS = 10;
   public static final int BRAINTREE_CREDIT_CARD = 11;
+  public static final int BITCOIN = 100;
 
   public List<PaymentMethod> map(List<PaymentServiceResponse> response) {
 
@@ -43,6 +45,7 @@ public class PaymentMethodMapper {
       case MOL_POINTS:
       case BRAINTREE_CREDIT_CARD:
       case SANDBOX:
+      case BITCOIN:
         return new PaymentMethod(response.getId(), response.getName(), response.getDescription());
       default:
         throw new IllegalArgumentException("Payment not supported: " + response.getName());

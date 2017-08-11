@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,10 +11,13 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
+
+import com.jakewharton.rxrelay.PublishRelay;
+
 import cm.aptoide.pt.v8engine.R;
+import cm.aptoide.pt.v8engine.billing.view.bitcoin.CoinbasePresenter;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.rx.RxAlertDialog;
-import com.jakewharton.rxrelay.PublishRelay;
 import rx.Observable;
 
 public abstract class WebViewFragment extends PermissionServiceFragment
@@ -25,13 +27,16 @@ public abstract class WebViewFragment extends PermissionServiceFragment
   private View indeterminateProgressBar;
   private RxAlertDialog unknownErrorDialog;
   private PublishRelay<Void> urlLoadErrorSubject;
+    private PublishRelay<Void> mainUrlSubject;
   private PublishRelay<Void> redirectUrlSubject;
   private PublishRelay<Void> backButtonSelectionSubject;
   private ClickHandler clickHandler;
+  private String redirect_url;
   private ProgressBar determinateProgressBar;
 
   @Override public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    mainUrlSubject = PublishRelay.create();
     redirectUrlSubject = PublishRelay.create();
     urlLoadErrorSubject = PublishRelay.create();
     backButtonSelectionSubject = PublishRelay.create();
@@ -96,6 +101,25 @@ public abstract class WebViewFragment extends PermissionServiceFragment
       @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
         if (url.equals(redirectUrl)) {
+          redirectUrlSubject.call(null);
+        }
+      }
+
+      @Override public void onPageFinished(WebView view, String url) {
+        super.onPageFinished(view, url);
+        mainUrlSubject.call(null);
+      }
+    });
+    webView.loadUrl(mainUrl);
+  }
+
+  public void loadWebsitewithContainingRedirect(String mainUrl, String redirectUrl) {
+    webView.setWebViewClient(new WebViewClient() {
+
+      @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
+        super.onPageStarted(view, url, favicon);
+        if (url.contains(redirectUrl)) {
+          CoinbasePresenter.redirect = url;
           redirectUrlSubject.call(null);
         }
       }

@@ -157,7 +157,7 @@ public class BitcoinBillingService implements BillingService {
                 .first()
                 .toSingle();
     }
-    
+
     @Override
     public Single<Product> getProduct(String sellerId, String productId) {
         if (idResolver.isInAppId(productId)) {

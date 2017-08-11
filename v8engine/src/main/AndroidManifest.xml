@@ -77,25 +77,16 @@
         />
 
     <!-- Coinbase Intent-Filter ///////////////////////////////////-->
-<!--
-    <activity
-        android:name="cm.aptoide.pt.v8engine.billing.view.bitcoin.CoinbaseActivity"
-        android:windowSoftInputMode="adjustResize"
-        android:launchMode="singleTask"
-        android:alwaysRetainTaskState="true"
-        android:label="@string/app_name" >
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
+
+
       <intent-filter>
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="coinbase-android-example" android:pathPrefix="/coinbase-oauth" />
+        <data android:scheme="https://en.aptoide.com" android:pathPrefix="coinbase-oauth"
+            android:host="coinbase" />
       </intent-filter>
-    </activity>
--->
+
     <activity
         android:name=".DeepLinkIntentReceiver"
         android:exported="true">

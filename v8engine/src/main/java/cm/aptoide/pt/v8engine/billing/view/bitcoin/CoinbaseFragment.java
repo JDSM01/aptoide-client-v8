@@ -44,14 +44,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         fragment.setArguments(bundle);
         return fragment;
     }
-/*
-    @Override public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        if (activity instanceof CoinbaseActivity) {
-            coinbase = (CoinbaseActivity) activity;
-        }
-    }
-*/
+
     @Override public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         billing = ((V8Engine) getContext().getApplicationContext()).getBilling();
@@ -70,7 +63,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
 
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        attachPresenter(new CoinbasePresenter(this, coinbase, billing, billingAnalytics,billingSyncScheduler, productProvider,
+        attachPresenter(new CoinbasePresenter(this, billing, billingAnalytics,billingSyncScheduler, productProvider,
                 new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
                         getActivityNavigator(), getFragmentNavigator()), paymentMethodId, service), savedInstanceState);
     }

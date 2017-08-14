@@ -9,7 +9,6 @@ import cm.aptoide.accountmanager.AptoideAccountManager;
 import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
-import cm.aptoide.pt.v8engine.billing.BillingSyncScheduler;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.PaymentThrowableCodeMapper;
@@ -28,11 +27,9 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
             "cm.aptoide.pt.v8engine.billing.view.extra.PAYMENT_METHOD_ID";
 
     private Billing billing;
-    private BillingSyncScheduler billingSyncScheduler;
     private BillingAnalytics billingAnalytics;
     private BitcoinTransactionService service;
     private int paymentMethodId;
-    private CoinbaseActivity coinbase;
     private AptoideAccountManager accountManager;
 
     public static Fragment create(Bundle bundle, int paymentMethodId) {
@@ -53,7 +50,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
 
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        attachPresenter(new CoinbasePresenter(this, coinbase, billing, billingAnalytics,billingSyncScheduler,
+        attachPresenter(new CoinbasePresenter(this, billing, billingAnalytics,
                 new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
                         getActivityNavigator(), getFragmentNavigator(), accountManager), paymentMethodId, service), savedInstanceState);
     }

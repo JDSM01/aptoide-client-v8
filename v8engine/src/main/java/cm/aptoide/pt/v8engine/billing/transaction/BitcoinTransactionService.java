@@ -74,10 +74,9 @@ public class BitcoinTransactionService implements TransactionService {
     }
 
 
-    public Single<Transaction> createTransactionCompleted(String productid, int paymentMethodId, String payerId) {
+    public Single<Transaction> createTransactionStatusUpdate(String sellerId, String productid, int paymentMethodId, String payerId, Transaction.Status status) { //made
         if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
-            transaction = transactionFactory.create(null, payerId, paymentMethodId, productid,
-                    Transaction.Status.COMPLETED, null, null, null, null, null);
+            transaction = transactionFactory.create(sellerId, payerId, paymentMethodId,productid, status, null, null, null, null,null);
             saveTransaction(transaction);
             return Single.just(transaction);
 

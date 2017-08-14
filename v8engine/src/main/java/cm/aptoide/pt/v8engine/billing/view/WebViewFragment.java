@@ -1,6 +1,7 @@
 package cm.aptoide.pt.v8engine.billing.view;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -10,6 +11,7 @@ import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 import android.widget.ProgressBar;
 
 import com.jakewharton.rxrelay.PublishRelay;
@@ -31,6 +33,7 @@ public abstract class WebViewFragment extends PermissionServiceFragment
   private PublishRelay<Void> redirectUrlSubject;
   private PublishRelay<Void> backButtonSelectionSubject;
   private ClickHandler clickHandler;
+  private ProgressDialog progressDialog;
   private String redirect_url;
   private ProgressBar determinateProgressBar;
 
@@ -76,6 +79,8 @@ public abstract class WebViewFragment extends PermissionServiceFragment
     webView.setWebChromeClient(null);
     webView.destroy();
     webView = null;
+    progressDialog.dismiss();
+    progressDialog = null;
     unknownErrorDialog.dismiss();
     unknownErrorDialog = null;
     unregisterClickHandler(clickHandler);
@@ -120,19 +125,34 @@ public abstract class WebViewFragment extends PermissionServiceFragment
         super.onPageStarted(view, url, favicon);
         if (url.contains(redirectUrl)) {
           CoinbasePresenter.redirect = url;
+          showProgressBar();
           redirectUrlSubject.call(null);
         }
       }
 
-      @Override public void onReceivedError(WebView view, int errorCode, String description,
-          String failingUrl) {
-        urlLoadErrorSubject.call(null);
+      @Override public void onPageFinished(WebView view, String url) {
+        super.onPageFinished(view, url);
+        mainUrlSubject.call(null);
       }
     });
     webView.loadUrl(mainUrl);
   }
 
-  @Override public Observable<Void> redirectUrlEvent() {
+  public void showProgressBar(){
+    String text = "Wating to confirm transaction, please wait";
+    progressDialog = new ProgressDialog(getActivity());
+    progressDialog.setTitle("Transaction Status");
+    progressDialog.setMessage(text);
+    progressDialog.show();
+  }
+
+  public void showCompleteToast(String state){
+    Toast.makeText(getActivity(), "Transaction "+state,
+            Toast.LENGTH_SHORT).show();
+  }
+
+
+  public Observable<Void> redirectUrlEvent() {
     return redirectUrlSubject;
   }
 

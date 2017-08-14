@@ -1,6 +1,7 @@
 package cm.aptoide.pt.v8engine.billing.view;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -10,6 +11,7 @@ import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import com.jakewharton.rxrelay.PublishRelay;
 
@@ -29,7 +31,7 @@ public class WebViewFragment extends PermissionServiceFragment
   private PublishRelay<Void> redirectUrlSubject;
   private PublishRelay<Void> backButtonSelectionSubject;
   private ClickHandler clickHandler;
-  private String redirect_url;
+  private ProgressDialog progressDialog;
 
   @Override public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -69,6 +71,8 @@ public class WebViewFragment extends PermissionServiceFragment
     webView.setWebViewClient(null);
     webView.destroy();
     webView = null;
+    progressDialog.dismiss();
+    progressDialog = null;
     unknownErrorDialog.dismiss();
     unknownErrorDialog = null;
     unregisterClickHandler(clickHandler);
@@ -103,6 +107,7 @@ public class WebViewFragment extends PermissionServiceFragment
     webView.loadUrl(mainUrl);
   }
 
+
   public void loadWebsitewithContainingRedirect(String mainUrl, String redirectUrl) {
     webView.setWebViewClient(new WebViewClient() {
 
@@ -110,7 +115,9 @@ public class WebViewFragment extends PermissionServiceFragment
         super.onPageStarted(view, url, favicon);
         if (url.contains(redirectUrl)) {
           CoinbasePresenter.redirect = url;
+          showProgressBar();
           redirectUrlSubject.call(null);
+
         }
       }
 
@@ -119,8 +126,42 @@ public class WebViewFragment extends PermissionServiceFragment
         mainUrlSubject.call(null);
       }
     });
-    webView.loadUrl(mainUrl);
+      webView.loadUrl(mainUrl);
   }
+
+  public void showProgressBar(){
+    String text = "Wating to confirm transaction, please wait";
+    progressDialog = new ProgressDialog(getActivity());
+    progressDialog.setTitle("Transaction Status");
+    progressDialog.setMessage(text);
+    progressDialog.show();
+  }
+
+  public void showCompleteToast(String state){
+    Toast.makeText(getActivity(), "Transaction "+state,
+            Toast.LENGTH_SHORT).show();
+  }
+  /* public void showConfirmationDialog(double price){
+    alertDialog = new ProgressDialog.Builder(getActivity()).create();
+    String text = "Confirm that you want to send Bitcoins";
+    alertDialog.setTitle("Sending           "+price+" BTC");
+    alertDialog.setMessage(text);
+   /* alertDialog.setButton(1, "OK", new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        CoinbasePresenter.confirmation = OK;
+      }
+    }); :
+    alertDialog.setButton(0, "CANCEL", new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        CoinbasePresenter.confirmation = CANCEL;
+      }
+    });
+    alertDialog.show();
+  } */
+
+
 
   public Observable<Void> redirectUrlEvent() {
     return redirectUrlSubject;

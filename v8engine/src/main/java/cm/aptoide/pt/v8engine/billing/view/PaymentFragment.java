@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.TextUtils;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +13,12 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+
+import com.jakewharton.rxbinding.view.RxView;
+import com.jakewharton.rxbinding.widget.RxRadioGroup;
+
+import java.util.List;
+
 import cm.aptoide.accountmanager.AptoideAccountManager;
 import cm.aptoide.pt.v8engine.R;
 import cm.aptoide.pt.v8engine.V8Engine;
@@ -25,9 +30,6 @@ import cm.aptoide.pt.v8engine.view.account.AccountNavigator;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.recycler.displayable.SpannableFactory;
 import cm.aptoide.pt.v8engine.view.rx.RxAlertDialog;
-import com.jakewharton.rxbinding.view.RxView;
-import com.jakewharton.rxbinding.widget.RxRadioGroup;
-import java.util.List;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 
@@ -60,6 +62,8 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private BillingAnalytics billingAnalytics;
   private AccountNavigator accountNavigator;
   private BillingNavigator billingNavigator;
+
+  private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
   public static Fragment create(Bundle bundle) {
     final PaymentFragment fragment = new PaymentFragment();
@@ -218,9 +222,12 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
         .load(product.getIcon(), productIcon);
     productName.setText(product.getTitle());
     productDescription.setText(product.getDescription());
-    productPrice.setText(product.getPrice()
+    /*productPrice.setText(product.getPrice()
         .getCurrencySymbol() + " " + product.getPrice()
         .getAmount());
+        */
+    double price = product.getPrice().getAmount()*CONVERSION_RATE;
+    productPrice.setText(price+" BTC");
   }
 
   @Override public void hidePaymentLoading() {

@@ -36,7 +36,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
     private ProductProvider productProvider;
     private BitcoinTransactionService service;
     private int paymentMethodId;
-    private CoinbaseActivity coinbase;
 
     public static Fragment create(Bundle bundle, int paymentMethodId) {
         final CoinbaseFragment fragment = new CoinbaseFragment();

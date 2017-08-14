@@ -16,8 +16,6 @@ public interface WebView extends View {
 
   void loadWebsite(String url, String redirectUrl);
 
-  void loadWebsitewithContainingRedirect(String url, String redirectUrl);
-
   Observable<Void> redirectUrlEvent();
 
   Observable<Void> backButtonEvent();

@@ -1,17 +1,11 @@
 package cm.aptoide.pt.v8engine.billing.transaction;
 
 import android.content.SharedPreferences;
-import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import cm.aptoide.pt.database.accessors.Database;
-import cm.aptoide.pt.database.realm.PaymentConfirmation;
 import cm.aptoide.pt.dataprovider.interfaces.TokenInvalidator;
-import cm.aptoide.pt.dataprovider.model.v3.ErrorResponse;
 import cm.aptoide.pt.dataprovider.ws.BodyInterceptor;
 import cm.aptoide.pt.dataprovider.ws.v3.BaseBody;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
@@ -19,7 +13,6 @@ import cm.aptoide.pt.v8engine.billing.Product;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;
-import rx.Observable;
 import rx.Single;
 
 /**
@@ -80,10 +73,9 @@ public class BitcoinTransactionService implements TransactionService {
     }
 
 
-    public Single<Transaction> createTransactionCompleted(int productid, int paymentMethodId, String payerId) {
+    public Single<Transaction> createTransactionStatusUpdate(int productid, int paymentMethodId, String payerId, Transaction.Status status) { //made
         if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
-            transaction = transactionFactory.create(productid, payerId,
-                    Transaction.Status.COMPLETED, paymentMethodId, null, null, null, null);
+            transaction = transactionFactory.create(productid, payerId, status, paymentMethodId, null, null, null, null);
             saveTransaction(transaction);
             return Single.just(transaction);
 

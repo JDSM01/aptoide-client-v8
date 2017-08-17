@@ -13,10 +13,13 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxRadioGroup;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.List;
 
 import cm.aptoide.accountmanager.AptoideAccountManager;
@@ -25,6 +28,7 @@ import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.Product;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.networking.image.ImageLoader;
 import cm.aptoide.pt.v8engine.view.account.AccountNavigator;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
@@ -62,6 +66,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private BillingAnalytics billingAnalytics;
   private AccountNavigator accountNavigator;
   private BillingNavigator billingNavigator;
+  private BitcoinTransactionService bitcoinTransactionService;
 
   private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
@@ -82,6 +87,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     billingNavigator =
         new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
             getActivityNavigator(), getFragmentNavigator());
+    bitcoinTransactionService = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
   }
 
   @Nullable @Override
@@ -106,7 +112,13 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     paymentRadioGroup = (RadioGroup) view.findViewById(R.id.fragment_payment_list);
 
     cancelButton = (Button) view.findViewById(R.id.include_payment_buttons_cancel_button);
-    buyButton = (Button) view.findViewById(R.id.include_payment_buttons_buy_button);
+    if(PaymentPresenter.class == null || !PaymentPresenter.isPending) { //Begin add Jose
+      buyButton = (Button) view.findViewById(R.id.include_payment_buttons_buy_button);
+    }
+    else{
+      Toast.makeText(getActivity(), "Transaction is Pending, please check back later",
+              Toast.LENGTH_LONG).show();
+    } //End of add Jose
 
     paymentMap = new SparseArray<>();
 
@@ -121,7 +133,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
 
     attachPresenter(
         new PaymentPresenter(this, billing, accountManager, accountNavigator, billingNavigator,
-            billingAnalytics, productProvider), savedInstanceState);
+            billingAnalytics, productProvider, bitcoinTransactionService), savedInstanceState);
   }
 
   @Override public void onDestroyView() {
@@ -226,7 +238,8 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
         .getCurrencySymbol() + " " + product.getPrice()
         .getAmount());
         */
-    double price = product.getPrice().getAmount()*CONVERSION_RATE;
+    NumberFormat formatter = new DecimalFormat("#.###############"); //Next 3 lines added Jose
+    String price = formatter.format(product.getPrice().getAmount()*CONVERSION_RATE);
     productPrice.setText(price+" BTC");
   }
 

@@ -6,7 +6,9 @@
 package cm.aptoide.pt.v8engine.billing.view;
 
 import android.os.Bundle;
-import android.util.Log;
+
+import java.io.IOException;
+import java.util.List;
 
 import cm.aptoide.accountmanager.Account;
 import cm.aptoide.accountmanager.AptoideAccountManager;
@@ -15,11 +17,11 @@ import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedException;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
+import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
 import cm.aptoide.pt.v8engine.presenter.Presenter;
 import cm.aptoide.pt.v8engine.presenter.View;
 import cm.aptoide.pt.v8engine.view.account.AccountNavigator;
-import java.io.IOException;
-import java.util.List;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -36,10 +38,12 @@ public class PaymentPresenter implements Presenter {
   private final BillingNavigator billingNavigator;
   private final ProductProvider productProvider;
   private final BillingAnalytics billingAnalytics;
+  private final BitcoinTransactionService bitcoinTransactionService;
+  public static boolean isPending = false;
 
   public PaymentPresenter(PaymentView view, Billing billing, AptoideAccountManager accountManager,
-      AccountNavigator accountNavigator, BillingNavigator billingNavigator,
-      BillingAnalytics billingAnalytics, ProductProvider productProvider) {
+                          AccountNavigator accountNavigator, BillingNavigator billingNavigator,
+                          BillingAnalytics billingAnalytics, ProductProvider productProvider, BitcoinTransactionService bitcoinTransactionService) {
     this.view = view;
     this.billing = billing;
     this.accountManager = accountManager;
@@ -47,6 +51,7 @@ public class PaymentPresenter implements Presenter {
     this.billingNavigator = billingNavigator;
     this.billingAnalytics = billingAnalytics;
     this.productProvider = productProvider;
+    this.bitcoinTransactionService = bitcoinTransactionService;
   }
 
   @Override public void present() {
@@ -118,6 +123,8 @@ public class PaymentPresenter implements Presenter {
         .observeOn(AndroidSchedulers.mainThread())
         .doOnNext(loggedIn -> view.showTransactionLoading())
         .flatMapSingle(loading -> productProvider.getProduct())
+            .doOnNext(product ->handleTransactionStatus(product.getId())) //added Jose
+            .flatMapSingle(loading -> productProvider.getProduct())
         .flatMap(product -> billing.getTransaction(product)
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext(transaction -> {
@@ -179,28 +186,28 @@ public class PaymentPresenter implements Presenter {
   }
 
   private void handleBuyEvent() {
-    view.getLifecycle()
-        .filter(event -> View.LifecycleEvent.CREATE.equals(event))
-        .flatMap(__ -> view.buySelection()
-            .doOnNext(buySelection -> view.showBuyLoading())
-            .flatMapSingle(selection -> productProvider.getProduct())
-            .flatMapCompletable(product -> billing.getSelectedPaymentMethod(product)
-                .doOnSuccess(payment -> billingAnalytics.sendPaymentBuyButtonPressedEvent(product,
-                    payment.getName()))
-                .flatMapCompletable(payment -> billing.processPayment(payment.getId(), product)
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .doOnCompleted(() -> view.hideBuyLoading())
-                    .onErrorResumeNext(
-                        throwable -> navigateToAuthorizationView(product, payment, throwable))))
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnError(throwable -> {
-              view.hideBuyLoading();
-              showError(throwable);
-            })
-            .retry())
-        .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
-        .subscribe(__ -> {
-        }, throwable -> billingNavigator.popPaymentViewWithResult(throwable));
+      view.getLifecycle()
+              .filter(event -> View.LifecycleEvent.CREATE.equals(event))
+              .flatMap(__ -> view.buySelection()
+                      .doOnNext(buySelection -> view.showBuyLoading())
+                      .flatMapSingle(selection -> productProvider.getProduct())
+                      .flatMapCompletable(product -> billing.getSelectedPaymentMethod(product)
+                              .doOnSuccess(payment -> billingAnalytics.sendPaymentBuyButtonPressedEvent(product,
+                                      payment.getName()))
+                              .flatMapCompletable(payment -> billing.processPayment(payment.getId(), product)
+                                      .observeOn(AndroidSchedulers.mainThread())
+                                      .doOnCompleted(() -> view.hideBuyLoading())
+                                      .onErrorResumeNext(
+                                              throwable -> navigateToAuthorizationView(product, payment, throwable))))
+                      .observeOn(AndroidSchedulers.mainThread())
+                      .doOnError(throwable -> {
+                        view.hideBuyLoading();
+                        showError(throwable);
+                      })
+                      .retry())
+              .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
+              .subscribe(__ -> {
+              }, throwable -> billingNavigator.popPaymentViewWithResult(throwable));
   }
 
   private Completable navigateToAuthorizationView(Product product, PaymentMethod payment,
@@ -279,5 +286,34 @@ public class PaymentPresenter implements Presenter {
     return accountManager.accountStatus()
         .first(account -> account.isLoggedIn())
         .toSingle();
+  }
+
+  private void handleTransactionStatus(int productID) {
+    Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
+    if (aptoideTransaction != null) {
+      if (bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId()) != null) {
+        switch (bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId()).getStatus()) {
+          case COMPLETE:
+            isPending = false;
+            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getProductId(),
+                    aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
+            break;
+          case FAILED:
+            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getProductId(),
+                    aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
+            break;
+          case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
+            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getProductId(),
+                    aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
+          case PENDING:
+            isPending = true;
+            break;
+          default:
+        }
+      }
+    }
   }
 }

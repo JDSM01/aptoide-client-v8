@@ -1,7 +1,5 @@
 package cm.aptoide.pt.v8engine.billing.view.bitcoin;
 
-import cm.aptoide.pt.spotandshare.socket.Log;
-
 /**
  * Created by jose_messejana on 11-08-2017.
  */
@@ -12,21 +10,23 @@ public class TransactionSimulator {
 
 
     public TransactionSimulator(){
-        Thread t = new Thread();
         status = Estado.PENDING;
-        try {
-            t.sleep(TIME_FOR_TEST_TRANSACTION);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Log.d("teste3","here");
-        status = Estado.COMPLETE;
     }
 
     public Estado getStatus(){
         return status;
     }
 
+    public void startThread(){
+        Thread t = new Thread();
+        try {
+            t.sleep(TIME_FOR_TEST_TRANSACTION);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+       // Log.d("teste3","15 passed");
+        status = Estado.COMPLETE;
+    }
     public enum Estado{
         PENDING,COMPLETE,OTHER,FAILED,CANCELED;
     }

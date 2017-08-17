@@ -25,7 +25,7 @@ import cm.aptoide.pt.v8engine.billing.exception.ProductNotFoundException;
 import cm.aptoide.pt.v8engine.billing.exception.PurchaseNotFoundException;
 import cm.aptoide.pt.v8engine.billing.product.PaidAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
-import cm.aptoide.pt.v8engine.billing.transaction.TransactionService;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;
@@ -48,13 +48,13 @@ public class BitcoinBillingService implements BillingService {
     private final PackageRepository packageRepository;
     private final PaymentMethodMapper paymentMethodMapper;
     private final Resources resources;
-    private final TransactionService bitTransactionService;
+    private final BitcoinTransactionService bitTransactionService;
 
     public BitcoinBillingService(BodyInterceptor<BaseBody> bodyInterceptorV3, OkHttpClient httpClient,
                                  Converter.Factory converterFactory, TokenInvalidator tokenInvalidator,
                                  SharedPreferences sharedPreferences, PurchaseMapper purchaseMapper,
                                  ProductFactory productFactory, PackageRepository packageRepository,
-                                 PaymentMethodMapper paymentMethodMapper, Resources resources, TransactionService bitTransactionService) {
+                                 PaymentMethodMapper paymentMethodMapper, Resources resources, BitcoinTransactionService bitTransactionService) {
         this.bodyInterceptorV3 = bodyInterceptorV3;
         this.httpClient = httpClient;
         this.converterFactory = converterFactory;

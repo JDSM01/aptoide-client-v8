@@ -5,12 +5,9 @@
 
 package cm.aptoide.pt.v8engine.billing.transaction;
 
-import com.coinbase.api.Coinbase;
-
 import cm.aptoide.pt.database.realm.PaymentConfirmation;
 import cm.aptoide.pt.dataprovider.model.v3.TransactionResponse;
 import cm.aptoide.pt.v8engine.billing.transaction.braintree.BraintreeTransaction;
-import cm.aptoide.pt.v8engine.billing.transaction.coinbase.CoinbaseTransaction;
 import cm.aptoide.pt.v8engine.billing.transaction.mol.MolTransaction;
 
 public class TransactionMapper {
@@ -49,10 +46,6 @@ public class TransactionMapper {
       successUrl = ((MolTransaction) transaction).getSuccessUrl();
     }
 
-    if (transaction instanceof CoinbaseTransaction){
-      confirmationUrl = ((CoinbaseTransaction) transaction).getConfirmationUrl();
-      successUrl = ((CoinbaseTransaction) transaction).getSuccessUrl();
-    }
     return new PaymentConfirmation(metadata, transaction.getProductId(), transaction.getStatus()
         .name(), transaction.getPayerId(), transaction.getPaymentMethodId(), confirmationUrl,
         successUrl, clientToken);

@@ -10,6 +10,7 @@ import cm.aptoide.pt.dataprovider.ws.BodyInterceptor;
 import cm.aptoide.pt.dataprovider.ws.v3.BaseBody;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.Product;
+import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;
@@ -30,6 +31,7 @@ public class BitcoinTransactionService implements TransactionService {
     private final TransactionFactory transactionFactory;
     private Transaction transaction = null;
     private Map<String, Transaction> transactionList = new HashMap<>();
+    private Map<String, TransactionSimulator> coinbaseTransactionList = new HashMap<>();
 
     public BitcoinTransactionService(TransactionMapper transactionMapper,
                                      BodyInterceptor<BaseBody> bodyInterceptorV3, Converter.Factory converterFactory,
@@ -122,5 +124,16 @@ public class BitcoinTransactionService implements TransactionService {
     private String concat(String productId, String payerId){
         return productId+payerId;
     }
+
+    ///////// Coinbase transactions
+
+    public TransactionSimulator getCBtransaction(String productID, String payerID){
+        return coinbaseTransactionList.get(concat(productID,payerID));
+    }
+
+    public void addCBtransaction(String productID, String payerID, TransactionSimulator transaction){
+        coinbaseTransactionList.put(concat(productID,payerID),transaction);
+    }
+
 }
 

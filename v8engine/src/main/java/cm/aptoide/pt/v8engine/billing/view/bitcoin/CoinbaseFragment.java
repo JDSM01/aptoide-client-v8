@@ -11,6 +11,7 @@ import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
+import cm.aptoide.pt.v8engine.billing.view.PaymentActivity;
 import cm.aptoide.pt.v8engine.billing.view.PaymentThrowableCodeMapper;
 import cm.aptoide.pt.v8engine.billing.view.PurchaseBundleMapper;
 import cm.aptoide.pt.v8engine.billing.view.WebView;
@@ -28,13 +29,11 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
 
     private Billing billing;
     private BillingAnalytics billingAnalytics;
-    private BitcoinTransactionService service;
-    private int paymentMethodId;
     private AptoideAccountManager accountManager;
+    private BitcoinTransactionService service;
 
-    public static Fragment create(Bundle bundle, int paymentMethodId) {
+    public static Fragment create(Bundle bundle) {
         final CoinbaseFragment fragment = new CoinbaseFragment();
-        bundle.putInt(EXTRA_PAYMENT_METHOD_ID, paymentMethodId);
         fragment.setArguments(bundle);
         return fragment;
     }
@@ -43,15 +42,17 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         super.onCreate(savedInstanceState);
         billing = ((V8Engine) getContext().getApplicationContext()).getBilling();
         billingAnalytics = ((V8Engine) getContext().getApplicationContext()).getBillingAnalytics();
-        paymentMethodId = getArguments().getInt(EXTRA_PAYMENT_METHOD_ID);
-        service = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
         accountManager = ((V8Engine) getContext().getApplicationContext()).getAccountManager();
+        service = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
     }
 
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         attachPresenter(new CoinbasePresenter(this, billing, billingAnalytics,
                 new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
-                        getActivityNavigator(), getFragmentNavigator(), accountManager), paymentMethodId, service), savedInstanceState);
+                        getActivityNavigator(), getFragmentNavigator(), accountManager),
+                getArguments().getString(PaymentActivity.EXTRA_APPLICATION_ID),
+                getArguments().getString(PaymentActivity.EXTRA_PAYMENT_METHOD_NAME),
+                getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),service), savedInstanceState);
     }
 }

@@ -27,7 +27,7 @@ import cm.aptoide.pt.v8engine.billing.product.InAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.PaidAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
 import cm.aptoide.pt.v8engine.billing.product.SimplePurchase;
-import cm.aptoide.pt.v8engine.billing.transaction.TransactionService;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;
@@ -52,14 +52,14 @@ public class BitcoinBillingService implements BillingService {
     private final Resources resources;
     private final BillingIdResolver idResolver;
     private final int apiVersion;
-    private final TransactionService bitTransactionService;
+    private final BitcoinTransactionService bitTransactionService;
 
     public BitcoinBillingService(BodyInterceptor<BaseBody> bodyInterceptorV3, OkHttpClient httpClient,
                                  Converter.Factory converterFactory, TokenInvalidator tokenInvalidator,
                                  SharedPreferences sharedPreferences, PurchaseMapper purchaseMapper,
                                  ProductFactory productFactory, PackageRepository packageRepository,
                                  PaymentMethodMapper paymentMethodMapper, Resources resources, BillingIdResolver idResolver,
-                                 int apiVersion, TransactionService bitTransactionService) {
+                                 int apiVersion, BitcoinTransactionService bitTransactionService) {
         this.bodyInterceptorV3 = bodyInterceptorV3;
         this.httpClient = httpClient;
         this.converterFactory = converterFactory;

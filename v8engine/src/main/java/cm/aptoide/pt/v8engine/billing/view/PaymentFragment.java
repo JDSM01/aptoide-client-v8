@@ -18,6 +18,8 @@ import android.widget.TextView;
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxRadioGroup;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.List;
 
 import cm.aptoide.accountmanager.AptoideAccountManager;
@@ -27,6 +29,7 @@ import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.Product;
+import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.networking.image.ImageLoader;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.recycler.displayable.SpannableFactory;
@@ -61,6 +64,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private BillingAnalytics billingAnalytics;
   private BillingNavigator billingNavigator;
   private ScrollView scroll;
+  private BitcoinTransactionService bitcoinTransactionService;
 
   private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
@@ -78,6 +82,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     billingNavigator =
         new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
             getActivityNavigator(), getFragmentNavigator(), accountManager);
+    bitcoinTransactionService = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
   }
 
   @Nullable @Override
@@ -115,7 +120,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
             .setPositiveButton(android.R.string.ok)
             .build();
 
-    attachPresenter(new PaymentPresenter(this, billing, billingNavigator, billingAnalytics,
+    attachPresenter(new PaymentPresenter(this, billing, billingNavigator, billingAnalytics, bitcoinTransactionService,
         getArguments().getString(PaymentActivity.EXTRA_APPLICATION_ID),
         getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),
         getArguments().getString(PaymentActivity.EXTRA_DEVELOPER_PAYLOAD)), savedInstanceState);
@@ -223,7 +228,8 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
         .getCurrencySymbol() + " " + product.getPrice()
         .getAmount());
         */
-    double price = product.getPrice().getAmount()*CONVERSION_RATE;
+    NumberFormat formatter = new DecimalFormat("#.###############"); //Next 3 lines added Jose
+    String price = formatter.format(product.getPrice().getAmount()*CONVERSION_RATE);
     productPrice.setText(price+" BTC");
   }
 

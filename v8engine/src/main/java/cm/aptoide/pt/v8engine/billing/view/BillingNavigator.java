@@ -64,7 +64,7 @@ public class BillingNavigator {
         fragmentNavigator.navigateTo(PayPalFragment.create(bundle));
         break;
       case PaymentMethodMapper.BITCOIN:
-            fragmentNavigator.navigateTo(CoinbaseFragment.create(bundle, paymentMethod.getId()));
+            fragmentNavigator.navigateTo(CoinbaseFragment.create(bundle));
           break;
       case PaymentMethodMapper.MOL_POINTS:
         fragmentNavigator.navigateTo(MolFragment.create(bundle));

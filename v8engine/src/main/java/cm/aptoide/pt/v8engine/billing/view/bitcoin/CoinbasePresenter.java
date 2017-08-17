@@ -7,16 +7,21 @@ import com.coinbase.api.Coinbase;
 import com.coinbase.api.CoinbaseBuilder;
 import com.coinbase.api.entity.OAuthCodeRequest;
 import com.coinbase.api.entity.OAuthTokensResponse;
+import com.coinbase.api.entity.Transaction;
 import com.coinbase.api.exception.CoinbaseException;
 import com.coinbase.api.exception.UnauthorizedException;
 
+import org.joda.money.Money;
+
 import java.net.URI;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Random;
 
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
+import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
-import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.WebViewFragment;
 import cm.aptoide.pt.v8engine.presenter.Presenter;
@@ -38,21 +43,29 @@ public class CoinbasePresenter implements Presenter {
     private final Billing billing;
     private final BillingAnalytics analytics;
     private final BillingNavigator navigator;
+    private final String sellerId;
+    private final String paymentMethodName;
+    private final String productId;
     private final BitcoinTransactionService service;
     private Coinbase coinbaseInstance;
     private Uri androidUri;
     private String CSRFtoken = null;
     private OAuthTokensResponse tokens;
-    private final int paymentMethodId;
     private TransactionSimulator bitcoinTransaction = null;
+    private Transaction bitCBTransaction = null;
+    private String hash;
+    private double price;
+    private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
-    public CoinbasePresenter(WebViewFragment view, Billing billing, BillingAnalytics analytics
-                             , BillingNavigator navigator, int paymentMethodId, BitcoinTransactionService service) {
+    public CoinbasePresenter(WebViewFragment view, Billing billing, BillingAnalytics analytics,
+                        BillingNavigator navigator, String sellerId, String paymentMethodName, String productId, BitcoinTransactionService service) {
         this.view = view;
         this.billing = billing;
         this.analytics = analytics;
         this.navigator = navigator;
-        this.paymentMethodId = paymentMethodId;
+        this.sellerId = sellerId;
+        this.paymentMethodName = paymentMethodName;
+        this.productId = productId;
         this.service = service;
 
     }
@@ -68,7 +81,7 @@ public class CoinbasePresenter implements Presenter {
     private void onViewCreateBitcoinPayment() {
         view.getLifecycle()
                 .filter(event -> event.equals(View.LifecycleEvent.CREATE))
-                .doOnNext(__ -> view.loadWebsitewithContainingRedirect(beginAuth(CLIENT_ID, "user", REDIRECT_URI, null).toString(),
+                .doOnNext(__ -> view.loadWebsitewithContainingRedirect(beginAuth(CLIENT_ID, "user", REDIRECT_URI).toString(),
                        REDIRECT_URI))
                 .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
                 .subscribe(__ -> {
@@ -85,10 +98,11 @@ public class CoinbasePresenter implements Presenter {
                     .filter(event -> event.equals(View.LifecycleEvent.CREATE))
                     .flatMap(created -> view.redirectUrlEvent()).observeOn(Schedulers.io())
                     .doOnNext(__ -> completeAuth(CLIENT_ID,CLIENT_SECRET,Uri.parse(redirect)))
-                    .doOnNext(__ -> createCoinbaseInstance()) //simulation of Sending coins
-                    .doOnNext(__ -> getCoinbaseUserEmail()).observeOn(AndroidSchedulers.mainThread())
-                    .filter(__ -> isFinalStatus())
-                    .doOnNext(__ -> handleTransactionStatus())
+                    .doOnNext(__ -> createCoinbaseInstance())
+                    //.doOnNext(__ -> sendCoins(price))
+                    .doOnNext(__ -> getCoinbaseUserEmail()).observeOn(AndroidSchedulers.mainThread())//simulation of Sending coins not needed on the real one
+                    .filter(__ -> isFinalStatus()) //to send coins replace with isFinalCBTransactionStatus()
+                    .doOnNext(__ -> handleTransactionStatus()) //to send coins replace with handleCBTransactionStatus()
                     .doOnNext(__ -> bitcoinTransaction = null)
                     .doOnNext( __ -> navigator.popTransactionAuthorizationView())
 
@@ -108,7 +122,11 @@ public class CoinbasePresenter implements Presenter {
                 .observeOn(AndroidSchedulers.mainThread())
                 .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
                 .subscribe(__ -> {
-                }, throwable -> navigator.popTransactionAuthorizationView());
+                }, throwable -> {
+                    navigator.popTransactionAuthorizationView();
+                    view.hideLoading();
+                    view.showError();
+                });
     }
 
     private void handleDismissEvent() {
@@ -130,6 +148,7 @@ public class CoinbasePresenter implements Presenter {
 
     }
 
+///////////OAUTH//////////////
 
     private String createLoginCSRFToken(){
         int result = (new Random()).nextInt();
@@ -144,8 +163,12 @@ public class CoinbasePresenter implements Presenter {
         return CSRFtoken;
     }
 
-    private Uri beginAuth(String clientId, String scope, String redirectUri, OAuthCodeRequest.Meta meta){
+    private Uri beginAuth(String clientId, String scope, String redirectUri){
         try {
+            OAuthCodeRequest.Meta meta = null; // Comment this line to sendCoins
+           // OAuthCodeRequest.Meta meta = new OAuthCodeRequest.Meta(); //Uncomment this line to send coins
+           // meta.setSendLimitAmount(Money.parse("USD 0.99")); //Uncomment this line to send coins
+           // meta.setSendLimitPeriod(OAuthCodeRequest.Meta.Period.DAILY); //Uncomment this line to send coins
             Coinbase coinbase = (new CoinbaseBuilder()).build();
             OAuthCodeRequest request = new OAuthCodeRequest();
             request.setClientId(clientId);
@@ -198,6 +221,8 @@ public class CoinbasePresenter implements Presenter {
         try{
             coinbaseInstance.getUser().getEmail();
             bitcoinTransaction = new TransactionSimulator();
+            service.addCBtransaction(service.getTransaction().getProductId(),service.getTransaction().getPayerId(),bitcoinTransaction);
+            bitcoinTransaction.startThread();
         } catch(Exception e ){}
         return null;
     }
@@ -213,27 +238,81 @@ public class CoinbasePresenter implements Presenter {
     }
 
     private void handleTransactionStatus() {
-        Transaction transaction = service.getTransaction();
+        cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction = service.getTransaction();
         switch(bitcoinTransaction.getStatus()){
             case COMPLETE:
                 view.showCompleteToast("complete");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
-                        transaction.getPaymentMethodId(), transaction.getPayerId(), Transaction.Status.COMPLETED);
+                        transaction.getPaymentMethodId(), transaction.getPayerId(), cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
                 break;
             case FAILED:
                 view.showCompleteToast("failed");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
-                        transaction.getPaymentMethodId(), transaction.getPayerId(), Transaction.Status.FAILED);
+                        transaction.getPaymentMethodId(), transaction.getPayerId(), cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
                 break;
             case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
                 view.showCompleteToast("canceled");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
-                        transaction.getPaymentMethodId(), transaction.getPayerId(), Transaction.Status.CANCELED);
+                        transaction.getPaymentMethodId(), transaction.getPayerId(), cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
+                break;
+            default:
+
+        }
+    }
+////////////////Real Transaction///////////////////
+
+
+    private void sendCoins(double price){
+        Double p = price*CONVERSION_RATE;
+        NumberFormat formatter = new DecimalFormat("#.###############");
+        String preco = formatter.format(p);
+        String user = service.getTransaction().getPayerId();
+        com.coinbase.api.entity.Transaction coinbasetransaction = new Transaction();
+        coinbasetransaction.setTo(user); //mail da coinbase ou bitcoin address
+        coinbasetransaction.setAmount(Money.parse("BTC "+preco));
+        try {
+            bitCBTransaction = coinbaseInstance.sendMoney(coinbasetransaction);
+            hash = bitCBTransaction.getHash();
+        } catch (Exception e) {e.printStackTrace();}
+    }
+
+    private void handleCBTransactionStatus() {
+        cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction = service.getTransaction();
+        switch(bitCBTransaction.getDetailedStatus()){
+            case COMPLETED:
+                view.showCompleteToast("complete");
+                service.createTransactionStatusUpdate(transaction.getSellerId(), transaction.getProductId(),
+                        transaction.getPaymentMethodId(), transaction.getPayerId(),
+                        cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
+                break;
+            case FAILED:
+                view.showCompleteToast("failed");
+                service.createTransactionStatusUpdate(transaction.getSellerId(), transaction.getProductId(),
+                        transaction.getPaymentMethodId(), transaction.getPayerId(),
+                        cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
+                break;
+            case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
+                view.showCompleteToast("canceled");
+                service.createTransactionStatusUpdate(transaction.getSellerId(), transaction.getProductId(),
+                        transaction.getPaymentMethodId(), transaction.getPayerId(),
+                        cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
                 break;
             default:
 
         }
     }
 
+    private boolean isFinalCBTransactionStatus(){
+        Transaction.DetailedStatus state = bitCBTransaction.getDetailedStatus();
+        if(state.equals(Transaction.DetailedStatus.COMPLETED)
+                || state.equals(Transaction.DetailedStatus.FAILED)
+                || state.equals(Transaction.DetailedStatus.CANCELED)) {
+            return true;
+        }
+        return false;
+    }
+    private void setPrice(Product product){
+        price = product.getPrice().getAmount();
+    }
 
 }

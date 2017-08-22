@@ -127,6 +127,7 @@ import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationService;
 import cm.aptoide.pt.v8engine.billing.authorization.BitcoinAuthorizationService;
 import cm.aptoide.pt.v8engine.billing.authorization.RealmAuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.V3AuthorizationService;
+import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
 import cm.aptoide.pt.v8engine.billing.external.ExternalBillingSerializer;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
 import cm.aptoide.pt.v8engine.billing.transaction.BitCoinTransactionPersistence;
@@ -276,6 +277,7 @@ public abstract class V8Engine extends Application {
   private AuthorizationService bitAuthorizationService;
   private AuthorizationPersistence realmAuthorizationPersistence;
   private BitCoinTransactionPersistence bitTransactionPersistence;
+  private CoinbaseOAuth coinbaseOAuth;
 
   /**
    * call after this instance onCreate()
@@ -855,6 +857,14 @@ public abstract class V8Engine extends Application {
                       getDefaultSharedPreferences());
     }
     return bitAuthorizationService;
+  }
+
+  public CoinbaseOAuth getCoinbaseOAuth(){
+    if (coinbaseOAuth == null){
+      coinbaseOAuth =
+              new CoinbaseOAuth(getBitTransactionService());
+    }
+    return coinbaseOAuth;
   }
 
   public TransactionMapper getTransactionMapper() {

@@ -2,6 +2,7 @@ package cm.aptoide.pt.v8engine.billing.view;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.paypal.android.sdk.payments.PayPalConfiguration;
 import com.paypal.android.sdk.payments.PayPalFuturePaymentActivity;
@@ -102,6 +103,7 @@ public class BillingNavigator {
   }
 
   public void popPaymentViewWithResult(Throwable throwable) {
+    Log.e("teste3", "popPaymentViewWithResult: ", throwable);
     activityNavigator.finish(Activity.RESULT_CANCELED, bundleMapper.map(throwable));
   }
 

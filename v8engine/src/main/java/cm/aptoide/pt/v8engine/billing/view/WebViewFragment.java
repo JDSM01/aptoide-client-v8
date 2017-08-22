@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.jakewharton.rxrelay.PublishRelay;
 
 import cm.aptoide.pt.v8engine.R;
+import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.view.bitcoin.CoinbasePresenter;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.rx.RxAlertDialog;
@@ -32,6 +33,7 @@ public class WebViewFragment extends PermissionServiceFragment
   private PublishRelay<Void> backButtonSelectionSubject;
   private ClickHandler clickHandler;
   private ProgressDialog progressDialog;
+  private int paymenMethod;
 
   @Override public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -130,16 +132,22 @@ public class WebViewFragment extends PermissionServiceFragment
   }
 
   public void showProgressBar(){
-    String text = "Wating to confirm transaction, please wait";
-    progressDialog = new ProgressDialog(getActivity());
-    progressDialog.setTitle("Transaction Status");
-    progressDialog.setMessage(text);
-    progressDialog.show();
+    if(PaymentMethodMapper.BITCOIN == paymenMethod) {
+      String text = "Wating to confirm transaction, please wait";
+      progressDialog = new ProgressDialog(getActivity());
+      progressDialog.setTitle("Transaction Status");
+      progressDialog.setMessage(text);
+      progressDialog.show();
+    }
   }
 
   public void showCompleteToast(String state){
     Toast.makeText(getActivity(), "Transaction "+state,
             Toast.LENGTH_SHORT).show();
+  }
+
+  public void setPaymentMethod(int paymentMethod){
+    this.paymenMethod = paymentMethod;
   }
   /* public void showConfirmationDialog(double price){
     alertDialog = new ProgressDialog.Builder(getActivity()).create();

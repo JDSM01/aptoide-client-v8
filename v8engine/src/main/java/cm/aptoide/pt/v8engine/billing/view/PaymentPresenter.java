@@ -12,6 +12,7 @@ import java.util.List;
 
 import cm.aptoide.accountmanager.Account;
 import cm.aptoide.accountmanager.AptoideAccountManager;
+import cm.aptoide.pt.spotandshare.socket.Log;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
@@ -19,6 +20,7 @@ import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedException;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
+import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import cm.aptoide.pt.v8engine.presenter.Presenter;
 import cm.aptoide.pt.v8engine.presenter.View;
 import cm.aptoide.pt.v8engine.view.account.AccountNavigator;
@@ -39,7 +41,6 @@ public class PaymentPresenter implements Presenter {
   private final ProductProvider productProvider;
   private final BillingAnalytics billingAnalytics;
   private final BitcoinTransactionService bitcoinTransactionService;
-  public static boolean isPending = false;
 
   public PaymentPresenter(PaymentView view, Billing billing, AptoideAccountManager accountManager,
                           AccountNavigator accountNavigator, BillingNavigator billingNavigator,
@@ -56,19 +57,20 @@ public class PaymentPresenter implements Presenter {
 
   @Override public void present() {
 
-    onViewCreatedShowLogin();
+      onViewCreatedShowLogin();
 
-    onViewCreatedShowPaymentInformation();
+      onViewCreatedShowPaymentInformation();
 
-    onViewCreatedCheckPurchase();
+      onViewCreatedCheckPurchase();
 
-    handlePaymentMethodSelectionEvent();
+      handlePaymentMethodSelectionEvent();
 
-    handleCancellationEvent();
+      handleCancellationEvent();
 
-    handleTapOutsideEvent();
+      handleTapOutsideEvent();
 
-    handleBuyEvent();
+      handleBuyEvent();
+
   }
 
   @Override public void saveState(Bundle state) {
@@ -122,7 +124,7 @@ public class PaymentPresenter implements Presenter {
         .flatMapSingle(created -> userLoggedIn())
         .observeOn(AndroidSchedulers.mainThread())
         .doOnNext(loggedIn -> view.showTransactionLoading())
-        .flatMapSingle(loading -> productProvider.getProduct())
+       .flatMapSingle(loading -> productProvider.getProduct())
             .doOnNext(product ->handleTransactionStatus(product.getId())) //added Jose
             .flatMapSingle(loading -> productProvider.getProduct())
         .flatMap(product -> billing.getTransaction(product)
@@ -288,30 +290,32 @@ public class PaymentPresenter implements Presenter {
         .toSingle();
   }
 
+  //Change TS to CB for real transaction
   private void handleTransactionStatus(int productID) {
+      Log.d("teste3","id.."+productID);
     Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
     if (aptoideTransaction != null) {
-      if (bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId()) != null) {
-        switch (bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId()).getStatus()) {
+      TransactionSimulator tssim = bitcoinTransactionService.getTStransaction(productID, aptoideTransaction.getPayerId());
+      if (tssim != null) {
+        switch (tssim.getStatus()) {
           case COMPLETE:
-            isPending = false;
-            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getProductId(),
+            bitcoinTransactionService.createTransactionStatusUpdate(productID,
                     aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                     cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
             break;
           case FAILED:
-            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getProductId(),
+            bitcoinTransactionService.createTransactionStatusUpdate(productID,
                     aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                     cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
             break;
           case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getProductId(),
+            bitcoinTransactionService.createTransactionStatusUpdate(productID,
                     aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                     cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
           case PENDING:
-            isPending = true;
             break;
           default:
+            break;
         }
       }
     }

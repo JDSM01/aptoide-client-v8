@@ -12,6 +12,7 @@ import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.BillingSyncScheduler;
+import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.PaymentThrowableCodeMapper;
@@ -36,6 +37,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
     private ProductProvider productProvider;
     private BitcoinTransactionService service;
     private int paymentMethodId;
+    private CoinbaseOAuth coinbaseOAuth;
 
     public static Fragment create(Bundle bundle, int paymentMethodId) {
         final CoinbaseFragment fragment = new CoinbaseFragment();
@@ -53,6 +55,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         productProvider = ProductProvider.fromBundle(billing, getArguments());
         paymentMethodId = getArguments().getInt(EXTRA_PAYMENT_METHOD_ID);
         service = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
+        coinbaseOAuth = (((V8Engine) getContext().getApplicationContext()).getCoinbaseOAuth());
     }
     @Nullable @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
@@ -64,6 +67,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         super.onViewCreated(view, savedInstanceState);
         attachPresenter(new CoinbasePresenter(this, billing, billingAnalytics,billingSyncScheduler, productProvider,
                 new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
-                        getActivityNavigator(), getFragmentNavigator()), paymentMethodId, service), savedInstanceState);
+                        getActivityNavigator(), getFragmentNavigator()), paymentMethodId, service, coinbaseOAuth), savedInstanceState);
     }
 }

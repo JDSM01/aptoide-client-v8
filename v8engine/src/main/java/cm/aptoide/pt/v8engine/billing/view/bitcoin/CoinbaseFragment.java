@@ -9,6 +9,7 @@ import cm.aptoide.accountmanager.AptoideAccountManager;
 import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
+import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.PaymentActivity;
@@ -31,6 +32,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
     private BillingAnalytics billingAnalytics;
     private AptoideAccountManager accountManager;
     private BitcoinTransactionService service;
+    private CoinbaseOAuth coinbaseOAuth;
 
     public static Fragment create(Bundle bundle) {
         final CoinbaseFragment fragment = new CoinbaseFragment();
@@ -44,6 +46,7 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         billingAnalytics = ((V8Engine) getContext().getApplicationContext()).getBillingAnalytics();
         accountManager = ((V8Engine) getContext().getApplicationContext()).getAccountManager();
         service = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
+        coinbaseOAuth = (((V8Engine) getContext().getApplicationContext()).getCoinbaseOAuth());
     }
 
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
@@ -53,6 +56,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
                         getActivityNavigator(), getFragmentNavigator(), accountManager),
                 getArguments().getString(PaymentActivity.EXTRA_APPLICATION_ID),
                 getArguments().getString(PaymentActivity.EXTRA_PAYMENT_METHOD_NAME),
-                getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),service), savedInstanceState);
+                getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),service,coinbaseOAuth), savedInstanceState);
     }
 }

@@ -128,6 +128,7 @@ import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationService;
 import cm.aptoide.pt.v8engine.billing.authorization.BitcoinAuthorizationService;
 import cm.aptoide.pt.v8engine.billing.authorization.InMemoryAuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.V3AuthorizationService;
+import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
 import cm.aptoide.pt.v8engine.billing.external.ExternalBillingSerializer;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
 import cm.aptoide.pt.v8engine.billing.sync.BillingSyncFactory;
@@ -292,8 +293,9 @@ public abstract class V8Engine extends Application {
   private BitCoinTransactionPersistence bitTransactionPersistence;
   private BitcoinTransactionService bitTransactionService;
   private AuthorizationService bitAuthorizationService;
+  private CoinbaseOAuth coinbaseOAuth;
 
-    /**
+  /**
    * call after this instance onCreate()
    */
   protected void activateLogger(boolean enable) {
@@ -797,7 +799,7 @@ public abstract class V8Engine extends Application {
       final PaymentMethodSelector paymentMethodSelector =
           new SharedPreferencesPaymentMethodSelector(BuildConfig.DEFAULT_PAYMENT_ID,
               getDefaultSharedPreferences());
-
+//changed to getBit-- from getReal...
       billing = new Billing(transactionRepository, billingService, authorizationRepository,
           paymentMethodSelector, getPayer());
     }
@@ -891,6 +893,14 @@ public abstract class V8Engine extends Application {
                       getDefaultSharedPreferences());
     }
     return bitAuthorizationService;
+  }
+
+  public CoinbaseOAuth getCoinbaseOAuth(){
+    if (coinbaseOAuth == null){
+      coinbaseOAuth =
+              new CoinbaseOAuth(getBitTransactionService());
+    }
+    return coinbaseOAuth;
   }
 
   public TransactionMapper getTransactionMapper() {

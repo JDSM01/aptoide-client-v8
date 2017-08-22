@@ -17,6 +17,7 @@ import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedException;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
+import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import cm.aptoide.pt.v8engine.presenter.Presenter;
 import cm.aptoide.pt.v8engine.presenter.View;
 import rx.Completable;
@@ -262,10 +263,10 @@ public class PaymentPresenter implements Presenter {
   private void handleTransactionStatus(String productID) {
     Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
     if (aptoideTransaction != null) {
-      if (bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId()) != null) {
-        switch (bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId()).getStatus()) {
+      TransactionSimulator tssim = bitcoinTransactionService.getTStransaction(productID, aptoideTransaction.getPayerId());
+      if (tssim != null) {
+        switch (tssim.getStatus()) {
           case COMPLETE:
-            isPending = false;
             bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(),
                     aptoideTransaction.getProductId(),
                     aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
@@ -283,9 +284,9 @@ public class PaymentPresenter implements Presenter {
                     aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                     cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
           case PENDING:
-            isPending = true;
             break;
           default:
+            break;
         }
       }
     }

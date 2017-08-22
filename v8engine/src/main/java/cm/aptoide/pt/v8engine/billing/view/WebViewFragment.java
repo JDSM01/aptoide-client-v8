@@ -139,11 +139,13 @@ public abstract class WebViewFragment extends PermissionServiceFragment
   }
 
   public void showProgressBar(){
-    String text = "Wating to confirm transaction, please wait";
-    progressDialog = new ProgressDialog(getActivity());
-    progressDialog.setTitle("Transaction Status");
-    progressDialog.setMessage(text);
-    progressDialog.show();
+    if(false) {
+      String text = "Wating to confirm transaction, please wait";
+      progressDialog = new ProgressDialog(getActivity());
+      progressDialog.setTitle("Transaction Status");
+      progressDialog.setMessage(text);
+      progressDialog.show();
+    }
   }
 
   public void showCompleteToast(String state){

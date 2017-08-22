@@ -32,6 +32,7 @@ public class BitcoinTransactionService implements TransactionService {
     private Transaction transaction = null;
     private Map<String, Transaction> transactionList = new HashMap<>();
     private Map<String, TransactionSimulator> coinbaseTransactionList = new HashMap<>();
+    private Map<String, com.coinbase.api.entity.Transaction> coinbaseCBTransactionList = new HashMap<>();
 
     public BitcoinTransactionService(TransactionMapper transactionMapper,
                                      BodyInterceptor<BaseBody> bodyInterceptorV3, Converter.Factory converterFactory,
@@ -127,12 +128,22 @@ public class BitcoinTransactionService implements TransactionService {
 
     ///////// Coinbase transactions
 
-    public TransactionSimulator getCBtransaction(String productID, String payerID){
+    public TransactionSimulator getTStransaction(String productID, String payerID){
         return coinbaseTransactionList.get(concat(productID,payerID));
     }
 
-    public void addCBtransaction(String productID, String payerID, TransactionSimulator transaction){
+    public void addTStransaction(String productID, String payerID, TransactionSimulator transaction){
         coinbaseTransactionList.put(concat(productID,payerID),transaction);
+    }
+
+    //////////Real Transaction/////////
+
+    public com.coinbase.api.entity.Transaction getCBtransaction(String productID, String payerID){
+        return coinbaseCBTransactionList.get(concat(productID,payerID));
+    }
+
+    public void addCBtransaction(String productID, String payerID, com.coinbase.api.entity.Transaction transaction){
+        coinbaseCBTransactionList.put(concat(productID,payerID),transaction);
     }
 
 }

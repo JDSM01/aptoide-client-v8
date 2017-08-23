@@ -25,7 +25,6 @@ import cm.aptoide.pt.v8engine.billing.exception.ProductNotFoundException;
 import cm.aptoide.pt.v8engine.billing.exception.PurchaseNotFoundException;
 import cm.aptoide.pt.v8engine.billing.product.PaidAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
-import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;
@@ -37,7 +36,7 @@ import rx.Single;
  */
 //V8Engine.java
 public class BitcoinBillingService implements BillingService {
-
+    public static final boolean REALTRANSACTION = false;
     private final BodyInterceptor<BaseBody> bodyInterceptorV3;
     private final OkHttpClient httpClient;
     private final Converter.Factory converterFactory;
@@ -48,13 +47,12 @@ public class BitcoinBillingService implements BillingService {
     private final PackageRepository packageRepository;
     private final PaymentMethodMapper paymentMethodMapper;
     private final Resources resources;
-    private final BitcoinTransactionService bitTransactionService;
 
     public BitcoinBillingService(BodyInterceptor<BaseBody> bodyInterceptorV3, OkHttpClient httpClient,
                                  Converter.Factory converterFactory, TokenInvalidator tokenInvalidator,
                                  SharedPreferences sharedPreferences, PurchaseMapper purchaseMapper,
                                  ProductFactory productFactory, PackageRepository packageRepository,
-                                 PaymentMethodMapper paymentMethodMapper, Resources resources, BitcoinTransactionService bitTransactionService) {
+                                 PaymentMethodMapper paymentMethodMapper, Resources resources) {
         this.bodyInterceptorV3 = bodyInterceptorV3;
         this.httpClient = httpClient;
         this.converterFactory = converterFactory;
@@ -65,7 +63,6 @@ public class BitcoinBillingService implements BillingService {
         this.packageRepository = packageRepository;
         this.paymentMethodMapper = paymentMethodMapper;
         this.resources = resources;
-        this.bitTransactionService = bitTransactionService;
     }
 
 

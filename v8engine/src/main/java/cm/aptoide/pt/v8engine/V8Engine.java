@@ -792,7 +792,7 @@ public abstract class V8Engine extends Application {
               WebService.getDefaultConverter(), getTokenInvalidator(),
               getDefaultSharedPreferences(), new PurchaseMapper(getInAppBillingSerializer()),
               new ProductFactory(), getPackageRepository(), new PaymentMethodMapper(),
-              getResources(), bitTransactionService);
+              getResources());
 
       /*final BillingService billingService =
           new BitcoinBillingService(getBaseBodyInterceptorV3(), getDefaultClient(),

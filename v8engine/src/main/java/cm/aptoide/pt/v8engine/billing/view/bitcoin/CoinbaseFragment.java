@@ -54,7 +54,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
                 ((V8Engine) getContext().getApplicationContext()).getBillingSyncScheduler();
         productProvider = ProductProvider.fromBundle(billing, getArguments());
         paymentMethodId = getArguments().getInt(EXTRA_PAYMENT_METHOD_ID);
-        service = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
         coinbaseOAuth = (((V8Engine) getContext().getApplicationContext()).getCoinbaseOAuth());
     }
     @Nullable @Override
@@ -67,6 +66,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         super.onViewCreated(view, savedInstanceState);
         attachPresenter(new CoinbasePresenter(this, billing, billingAnalytics,billingSyncScheduler, productProvider,
                 new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
-                        getActivityNavigator(), getFragmentNavigator()), paymentMethodId, service, coinbaseOAuth), savedInstanceState);
+                        getActivityNavigator(), getFragmentNavigator()), paymentMethodId, coinbaseOAuth), savedInstanceState);
     }
 }

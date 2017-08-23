@@ -13,7 +13,6 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxRadioGroup;
@@ -27,6 +26,7 @@ import cm.aptoide.pt.v8engine.R;
 import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
+import cm.aptoide.pt.v8engine.billing.BitcoinBillingService;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
@@ -70,8 +70,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private AccountNavigator accountNavigator;
   private BillingNavigator billingNavigator;
   private BitcoinTransactionService bitcoinTransactionService;
-  private TransactionSimulator tssim;
-  private boolean aux = false;
+  private boolean pending = false;
 
   private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
@@ -118,12 +117,12 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
 
     cancelButton = (Button) view.findViewById(R.id.include_payment_buttons_cancel_button);
     buyButton = (Button) view.findViewById(R.id.include_payment_buttons_buy_button);
-    buyButton.setEnabled(false);
     isPending().subscribe(pending -> {
-      if (!pending) {
-        buyButton.setEnabled(true);
-      } else {
-        Toast.makeText(getActivity(),"Transaction is Pending, please comeback later", Toast.LENGTH_LONG);
+      if (pending) {
+        buyButton.setEnabled(false);
+        buyButton.setVisibility(View.GONE);
+        buyButton.setText("Pending");
+        buyButton.setVisibility(View.VISIBLE);
       }
      }, throwable -> throwable.printStackTrace());
 
@@ -133,9 +132,9 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
             .setPositiveButton(android.R.string.ok)
             .build();
     unknownErrorDialog =
-        new RxAlertDialog.Builder(getContext()).setMessage(R.string.all_message_general_error)
-            .setPositiveButton(android.R.string.ok)
-            .build();
+            new RxAlertDialog.Builder(getContext()).setMessage(R.string.all_message_general_error)
+                    .setPositiveButton(android.R.string.ok)
+                    .build();
     attachPresenter(
         new PaymentPresenter(this, billing, accountManager, accountNavigator, billingNavigator,
             billingAnalytics, productProvider, bitcoinTransactionService), savedInstanceState);
@@ -282,7 +281,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   }
 
   @Override public void showUnknownError() {
-    if (!networkErrorDialog.isShowing() && !unknownErrorDialog.isShowing()) {
+    if (!networkErrorDialog.isShowing() && !unknownErrorDialog.isShowing() && !pending) {
       unknownErrorDialog.show();
     }
   }
@@ -293,27 +292,27 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     return productProvider.getProduct().map(product -> {
       Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
       if (aptoideTransaction != null) {
-        TransactionSimulator transactionSimulator = bitcoinTransactionService.getTStransaction(product.getId(), aptoideTransaction.getPayerId());
-        if (transactionSimulator != null) {
-          if (transactionSimulator.getStatus().equals(TransactionSimulator.Estado.PENDING)) {
-            return true;
+        if(!BitcoinBillingService.REALTRANSACTION) {
+          TransactionSimulator transactionSimulator = bitcoinTransactionService.getTStransaction(product.getId(), aptoideTransaction.getPayerId());
+          if (transactionSimulator != null) {
+            if (transactionSimulator.getStatus().equals(TransactionSimulator.Estado.PENDING)) {
+              pending = true;
+              return true;
+            }
+          }
+        } else{
+          com.coinbase.api.entity.Transaction cbtransaction = bitcoinTransactionService.getCBtransaction(product.getId(), aptoideTransaction.getPayerId());
+          if (cbtransaction != null) {
+            if (cbtransaction.getDetailedStatus().equals(com.coinbase.api.entity.Transaction.DetailedStatus.PENDING)) {
+              pending = true;
+              return true;
+            }
           }
         }
       }
+      pending = false;
       return false;
     });
 
-//    if (aptoideTransaction != null) {
-//      productProvider.getProduct()
-//              .doOnSuccess(product ->  setTSimulator(product.getId(), aptoideTransaction.getPayerId()))
-//              .subscribe();
-//      if (tssim != null) {
-//        Log.d("teste3", "status: " + tssim.getStatus());
-//        if (tssim.getStatus() == TransactionSimulator.Estado.PENDING) {
-//          return true;
-//        }
-//      }
-//    }
-//    return false;
   }
 }

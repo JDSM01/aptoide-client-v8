@@ -39,7 +39,7 @@ import rx.Single;
  */
 //V8Engine.java
 public class BitcoinBillingService implements BillingService {
-
+    public static final boolean REALTRANSACTION = false;
     private final BodyInterceptor<BaseBody> bodyInterceptorV3;
     private final OkHttpClient httpClient;
     private final Converter.Factory converterFactory;
@@ -52,14 +52,13 @@ public class BitcoinBillingService implements BillingService {
     private final Resources resources;
     private final BillingIdResolver idResolver;
     private final int apiVersion;
-    private final BitcoinTransactionService bitTransactionService;
 
     public BitcoinBillingService(BodyInterceptor<BaseBody> bodyInterceptorV3, OkHttpClient httpClient,
                                  Converter.Factory converterFactory, TokenInvalidator tokenInvalidator,
                                  SharedPreferences sharedPreferences, PurchaseMapper purchaseMapper,
                                  ProductFactory productFactory, PackageRepository packageRepository,
                                  PaymentMethodMapper paymentMethodMapper, Resources resources, BillingIdResolver idResolver,
-                                 int apiVersion, BitcoinTransactionService bitTransactionService) {
+                                 int apiVersion) {
         this.bodyInterceptorV3 = bodyInterceptorV3;
         this.httpClient = httpClient;
         this.converterFactory = converterFactory;
@@ -72,7 +71,6 @@ public class BitcoinBillingService implements BillingService {
         this.resources = resources;
         this.idResolver = idResolver;
         this.apiVersion = apiVersion;
-        this.bitTransactionService = bitTransactionService;
     }
 
 

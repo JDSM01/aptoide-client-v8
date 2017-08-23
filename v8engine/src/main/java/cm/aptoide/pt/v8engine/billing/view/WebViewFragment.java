@@ -17,6 +17,8 @@ import android.widget.ProgressBar;
 import com.jakewharton.rxrelay.PublishRelay;
 
 import cm.aptoide.pt.v8engine.R;
+import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
+import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
 import cm.aptoide.pt.v8engine.billing.view.bitcoin.CoinbasePresenter;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.rx.RxAlertDialog;
@@ -124,7 +126,7 @@ public abstract class WebViewFragment extends PermissionServiceFragment
       @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
         if (url.contains(redirectUrl)) {
-          CoinbasePresenter.redirect = url;
+          CoinbaseOAuth.cbredirectUrl = url;
           showProgressBar();
           redirectUrlSubject.call(null);
         }

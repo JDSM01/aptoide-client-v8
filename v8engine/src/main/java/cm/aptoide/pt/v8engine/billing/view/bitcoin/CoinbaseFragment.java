@@ -10,7 +10,6 @@ import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
-import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.PaymentActivity;
 import cm.aptoide.pt.v8engine.billing.view.PaymentThrowableCodeMapper;
@@ -31,7 +30,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
     private Billing billing;
     private BillingAnalytics billingAnalytics;
     private AptoideAccountManager accountManager;
-    private BitcoinTransactionService service;
     private CoinbaseOAuth coinbaseOAuth;
 
     public static Fragment create(Bundle bundle) {
@@ -45,7 +43,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
         billing = ((V8Engine) getContext().getApplicationContext()).getBilling();
         billingAnalytics = ((V8Engine) getContext().getApplicationContext()).getBillingAnalytics();
         accountManager = ((V8Engine) getContext().getApplicationContext()).getAccountManager();
-        service = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
         coinbaseOAuth = (((V8Engine) getContext().getApplicationContext()).getCoinbaseOAuth());
     }
 
@@ -56,6 +53,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
                         getActivityNavigator(), getFragmentNavigator(), accountManager),
                 getArguments().getString(PaymentActivity.EXTRA_APPLICATION_ID),
                 getArguments().getString(PaymentActivity.EXTRA_PAYMENT_METHOD_NAME),
-                getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),service,coinbaseOAuth), savedInstanceState);
+                getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),coinbaseOAuth), savedInstanceState);
     }
 }

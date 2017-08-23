@@ -12,6 +12,7 @@ import java.util.List;
 
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
+import cm.aptoide.pt.v8engine.billing.BitcoinBillingService;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedException;
@@ -263,32 +264,55 @@ public class PaymentPresenter implements Presenter {
   private void handleTransactionStatus(String productID) {
     Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
     if (aptoideTransaction != null) {
-      TransactionSimulator tssim = bitcoinTransactionService.getTStransaction(productID, aptoideTransaction.getPayerId());
-      if (tssim != null) {
-        switch (tssim.getStatus()) {
-          case COMPLETE:
-            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(),
-                    aptoideTransaction.getProductId(),
-                    aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
-                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
-            break;
-          case FAILED:
-            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(),
-                    aptoideTransaction.getProductId(),
-                    aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
-                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
-            break;
-          case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-            bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(),
-                    aptoideTransaction.getProductId(),
-                    aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
-                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
-          case PENDING:
-            break;
-          default:
-            break;
+        if(!BitcoinBillingService.REALTRANSACTION) {
+            TransactionSimulator tssim = bitcoinTransactionService.getTStransaction(productID, aptoideTransaction.getPayerId());
+            if (tssim != null) {
+                switch (tssim.getStatus()) {
+                    case COMPLETE:
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                                aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
+                        break;
+                    case FAILED:
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                                aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
+                        break;
+                    case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                                aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
+                    case PENDING:
+                        break;
+                    default:
+                        break;
+                }
+            }
+        } else{
+            com.coinbase.api.entity.Transaction cbtransaction = bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId());
+            if (cbtransaction != null) {
+                switch (cbtransaction.getDetailedStatus()) {
+                    case COMPLETED:
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                                aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
+                        break;
+                    case FAILED:
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                                aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
+                        break;
+                    case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                                aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
+                                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
+                    case PENDING:
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
-      }
     }
   }
 }

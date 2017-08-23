@@ -8,7 +8,7 @@ import cm.aptoide.pt.spotandshare.socket.Log;
 
 public class TransactionSimulator {
     private Estado status;
-    private static final int TIME_FOR_TEST_TRANSACTION = 35000; //10s
+    private static final int TIME_FOR_TEST_TRANSACTION = 10000; //10s
 
 
     public TransactionSimulator(){
@@ -26,7 +26,7 @@ public class TransactionSimulator {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Log.d("teste3","30s passed");
+        Log.d("teste3","10s passed");
         status = Estado.COMPLETE;
     }
     public enum Estado{

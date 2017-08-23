@@ -66,8 +66,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private BillingNavigator billingNavigator;
   private ScrollView scroll;
   private BitcoinTransactionService bitcoinTransactionService;
-  private TransactionSimulator tssim;
-  private boolean aux = false;
+  private boolean pending = false;
 
   private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
@@ -111,13 +110,12 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
 
     cancelButton = (Button) view.findViewById(R.id.include_payment_buttons_cancel_button);
     buyButton = (Button) view.findViewById(R.id.include_payment_buttons_buy_button);
-    buyButton = (Button) view.findViewById(R.id.include_payment_buttons_buy_button);
-//    buyButton.setEnabled(false);
 //    isPending().subscribe(pending -> {
-//      if (!pending) {
-//        buyButton.setEnabled(true);
-//      } else {
-//        Toast.makeText(getActivity(),"Transaction is Pending, please comeback later", Toast.LENGTH_LONG);
+//      if (pending) {
+//        buyButton.setEnabled(false);
+//        buyButton.setVisibility(View.GONE);
+//        buyButton.setText("Pending");
+//        buyButton.setVisibility(View.VISIBLE);
 //      }
 //     }, throwable -> throwable.printStackTrace());
 
@@ -299,13 +297,25 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
 //    return productProvider.getProduct().map(product -> {
 //      Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
 //      if (aptoideTransaction != null) {
-//        TransactionSimulator transactionSimulator = bitcoinTransactionService.getTStransaction(product.getId(), aptoideTransaction.getPayerId());
-//        if (transactionSimulator != null) {
-//          if (transactionSimulator.getStatus().equals(TransactionSimulator.Estado.PENDING)) {
-//            return true;
+//        if(!BitcoinBillingService.REALTRANSACTION) {
+//          TransactionSimulator transactionSimulator = bitcoinTransactionService.getTStransaction(product.getId(), aptoideTransaction.getPayerId());
+//          if (transactionSimulator != null) {
+//            if (transactionSimulator.getStatus().equals(TransactionSimulator.Estado.PENDING)) {
+//              pending = true;
+//              return true;
+//            }
+//          }
+//        } else{
+//          com.coinbase.api.entity.Transaction cbtransaction = bitcoinTransactionService.getCBtransaction(product.getId(), aptoideTransaction.getPayerId());
+//          if (cbtransaction != null) {
+//            if (cbtransaction.getDetailedStatus().equals(com.coinbase.api.entity.Transaction.DetailedStatus.PENDING)) {
+//              pending = true;
+//              return true;
+//            }
 //          }
 //        }
 //      }
+//      pending = false;
 //      return false;
 //    });
 //

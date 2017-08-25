@@ -9,7 +9,6 @@ import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.WebViewFragment;
 import cm.aptoide.pt.v8engine.presenter.Presenter;
 import cm.aptoide.pt.v8engine.presenter.View;
-import rx.Single;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -57,8 +56,8 @@ public class CoinbasePresenter implements Presenter {
                     .filter(event -> event.equals(View.LifecycleEvent.CREATE)).observeOn(Schedulers.io())
                     .flatMapSingle(exists -> coinbaseOAuth.existsToken())
                     .flatMapSingle(exists -> {
-                        if (exists){ tokenexists = true; return Single.just(REDIRECT_URI); }
-                        else{ tokenexists = false; return coinbaseOAuth.beginAuth(REDIRECT_URI); }}).observeOn(AndroidSchedulers.mainThread())
+                        if (exists){ tokenexists = true; /*return Single.just(REDIRECT_URI);*/ }
+                        else{ tokenexists = false; }return coinbaseOAuth.beginAuth(REDIRECT_URI); }).observeOn(AndroidSchedulers.mainThread())
                     .doOnNext(uri -> view.loadWebsitewithContainingRedirect(uri.toString(), REDIRECT_URI))
                     .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
                     .subscribe(__ -> {
@@ -113,7 +112,11 @@ public class CoinbasePresenter implements Presenter {
                 .flatMap(created -> view.errorDismissedEvent())
                 .doOnNext(dismiss -> navigator.popTransactionAuthorizationView())
                 .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
-                .subscribe();
+                .subscribe(__ -> {
+                }, throwable -> {
+                    view.hideLoading();
+                    view.showError();
+                });
     }
 
     @Override

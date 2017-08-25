@@ -105,10 +105,11 @@ public class BitcoinTransactionService implements TransactionService {
 
 
     public Completable removeTransaction(String productId) {
+        String payer = transaction.getPayerId();
         transaction = null;
+        transactionList.remove(concat(productId,payer));
         return Completable.complete();
     }
-
 
 
     public Completable removeAllTransactions() {
@@ -126,7 +127,7 @@ public class BitcoinTransactionService implements TransactionService {
         return productId+payerId;
     }
 
-    ///////// Coinbase transactions
+    ///////// Coinbase Simulator transactions
 
     public TransactionSimulator getTStransaction(String productID, String payerID){
         return coinbaseTransactionList.get(concat(productID,payerID));

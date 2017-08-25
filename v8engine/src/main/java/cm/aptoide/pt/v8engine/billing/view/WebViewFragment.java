@@ -81,7 +81,7 @@ public abstract class WebViewFragment extends PermissionServiceFragment
     webView.setWebChromeClient(null);
     webView.destroy();
     webView = null;
-    progressDialog.dismiss();
+    if(progressDialog != null) progressDialog.dismiss();
     progressDialog = null;
     unknownErrorDialog.dismiss();
     unknownErrorDialog = null;

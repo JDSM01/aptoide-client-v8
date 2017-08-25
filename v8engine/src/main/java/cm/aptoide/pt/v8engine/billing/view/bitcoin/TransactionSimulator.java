@@ -1,6 +1,6 @@
 package cm.aptoide.pt.v8engine.billing.view.bitcoin;
 
-import cm.aptoide.pt.spotandshare.socket.Log;
+import cm.aptoide.pt.logger.Logger;
 
 /**
  * Created by jose_messejana on 11-08-2017.
@@ -26,7 +26,7 @@ public class TransactionSimulator {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        Log.d("teste3","10s passed");
+        Logger.e("teste3","10sec passed");
         status = Estado.COMPLETE;
     }
     public enum Estado{

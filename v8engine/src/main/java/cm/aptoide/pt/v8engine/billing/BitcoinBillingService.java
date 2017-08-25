@@ -69,9 +69,9 @@ public class BitcoinBillingService implements BillingService {
     @Override
     public Single<List<PaymentMethod>> getPaymentMethods(Product product) {
         //if (product instanceof PaidAppProduct) {
-            List<PaymentMethod> fsdf = new ArrayList<PaymentMethod>();
-            fsdf.add(new PaymentMethod(100, "Bitcoin", "Bitcoin payment"));
-            return Single.just(fsdf);
+            List<PaymentMethod> paymentList = new ArrayList<PaymentMethod>();
+            paymentList.add(new PaymentMethod(100, "Bitcoin", "Coinbase Payment"));
+            return Single.just(paymentList);
         /*}
         if (product instanceof InAppProduct) { //free
             return getServerSKUs(((InAppProduct) product).getApiVersion(),

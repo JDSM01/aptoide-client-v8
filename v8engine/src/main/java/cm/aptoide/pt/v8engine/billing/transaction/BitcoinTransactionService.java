@@ -64,7 +64,7 @@ public class BitcoinTransactionService implements TransactionService {
 
     @Override
     public Single<Transaction> createTransaction(Product product, int paymentMethodId, String payerId) {
-        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
+        if (paymentMethodId == PaymentMethodMapper.BITCOIN) {
             transaction = transactionFactory.create(product.getId(), payerId,
                     Transaction.Status.PENDING_USER_AUTHORIZATION, paymentMethodId, null, null, null, null);
             saveTransaction(transaction);
@@ -77,7 +77,7 @@ public class BitcoinTransactionService implements TransactionService {
 
 
     public Single<Transaction> createTransactionStatusUpdate(int productid, int paymentMethodId, String payerId, Transaction.Status status) { //made
-        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
+        if (paymentMethodId == PaymentMethodMapper.BITCOIN) {
             transaction = transactionFactory.create(productid, payerId, status, paymentMethodId, null, null, null, null);
             saveTransaction(transaction);
             return Single.just(transaction);
@@ -94,7 +94,7 @@ public class BitcoinTransactionService implements TransactionService {
     /////////////////
 
     public Single<Transaction> createTransactionwithstatus(int productId, String metadata, Transaction.Status status, String payerId, int paymentMethodId) {
-        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
+        if (paymentMethodId == PaymentMethodMapper.BITCOIN) {
                 transaction = transactionFactory.create(productId, payerId, status, paymentMethodId, null, null, null, null);
             saveTransaction(transaction);
             return Single.just(transaction);
@@ -104,10 +104,11 @@ public class BitcoinTransactionService implements TransactionService {
 
 
     public Completable removeTransaction(int productId) {
+        String payer = transaction.getPayerId();
         transaction = null;
+        transactionList.remove(concat(productId,payer));
         return Completable.complete();
     }
-
 
 
     public Completable removeAllTransactions() {
@@ -125,7 +126,7 @@ public class BitcoinTransactionService implements TransactionService {
         return productId+payerId;
     }
 
-    ///////// Coinbase transactions
+    ///////// Coinbase Simulator transactions
 
     public TransactionSimulator getTStransaction(int productID, String payerID){
         return coinbaseTransactionList.get(concat(productID,payerID));

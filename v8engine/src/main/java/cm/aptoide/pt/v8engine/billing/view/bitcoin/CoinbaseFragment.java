@@ -13,7 +13,6 @@ import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.BillingSyncScheduler;
 import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
-import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import cm.aptoide.pt.v8engine.billing.view.BillingNavigator;
 import cm.aptoide.pt.v8engine.billing.view.PaymentThrowableCodeMapper;
 import cm.aptoide.pt.v8engine.billing.view.ProductProvider;
@@ -35,7 +34,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
     private BillingSyncScheduler billingSyncScheduler;
     private BillingAnalytics billingAnalytics;
     private ProductProvider productProvider;
-    private BitcoinTransactionService service;
     private int paymentMethodId;
     private CoinbaseOAuth coinbaseOAuth;
 

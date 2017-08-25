@@ -143,7 +143,9 @@ public class PaymentPresenter implements Presenter {
         .doOnNext(purchase -> view.hideTransactionLoading())
         .subscribe(purchase -> billingNavigator.popPaymentViewWithResult(purchase), throwable -> {
           view.hideTransactionLoading();
-          showError(throwable);
+            view.hideBuyLoading();
+            view.hidePaymentLoading();
+         // showError(throwable);
         });
   }
 

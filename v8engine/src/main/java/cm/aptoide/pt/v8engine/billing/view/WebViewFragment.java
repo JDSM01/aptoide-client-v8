@@ -73,7 +73,7 @@ public class WebViewFragment extends PermissionServiceFragment
     webView.setWebViewClient(null);
     webView.destroy();
     webView = null;
-    progressDialog.dismiss();
+    if(progressDialog != null) progressDialog.dismiss();
     progressDialog = null;
     unknownErrorDialog.dismiss();
     unknownErrorDialog = null;
@@ -149,27 +149,6 @@ public class WebViewFragment extends PermissionServiceFragment
   public void setPaymentMethod(int paymentMethod){
     this.paymenMethod = paymentMethod;
   }
-  /* public void showConfirmationDialog(double price){
-    alertDialog = new ProgressDialog.Builder(getActivity()).create();
-    String text = "Confirm that you want to send Bitcoins";
-    alertDialog.setTitle("Sending           "+price+" BTC");
-    alertDialog.setMessage(text);
-   /* alertDialog.setButton(1, "OK", new DialogInterface.OnClickListener() {
-      @Override
-      public void onClick(DialogInterface dialog, int which) {
-        CoinbasePresenter.confirmation = OK;
-      }
-    }); :
-    alertDialog.setButton(0, "CANCEL", new DialogInterface.OnClickListener() {
-      @Override
-      public void onClick(DialogInterface dialog, int which) {
-        CoinbasePresenter.confirmation = CANCEL;
-      }
-    });
-    alertDialog.show();
-  } */
-
-
 
   public Observable<Void> redirectUrlEvent() {
     return redirectUrlSubject;

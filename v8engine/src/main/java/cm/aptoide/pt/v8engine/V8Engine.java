@@ -115,12 +115,12 @@ import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.BillingIdResolver;
 import cm.aptoide.pt.v8engine.billing.BillingService;
+import cm.aptoide.pt.v8engine.billing.BitcoinBillingService;
 import cm.aptoide.pt.v8engine.billing.Payer;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodSelector;
 import cm.aptoide.pt.v8engine.billing.PurchaseMapper;
 import cm.aptoide.pt.v8engine.billing.SharedPreferencesPaymentMethodSelector;
-import cm.aptoide.pt.v8engine.billing.V3BillingService;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationFactory;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationPersistence;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationRepository;
@@ -780,15 +780,15 @@ public abstract class V8Engine extends Application {
     if (billing == null) {
 
       final TransactionRepository transactionRepository =
-          new TransactionRepository(geTransactionPersistence(), getBillingSyncManager(), getPayer(),
-              getTransactionService());
+          new TransactionRepository(getBitTransactionPersistence(), getBillingSyncManager(), getPayer(),
+              getBitTransactionService());
 
       final AuthorizationRepository authorizationRepository =
           new AuthorizationRepository(getBillingSyncManager(), getPayer(),
-              getAuthorizationService(), getAuthorizationPersistence());
+              getBitcoinAuthorizationService(), getAuthorizationPersistence());
 
       final BillingService billingService =
-          new V3BillingService(getBaseBodyInterceptorV3(), getDefaultClient(),
+          new BitcoinBillingService(getBaseBodyInterceptorV3(), getDefaultClient(),
               WebService.getDefaultConverter(), getTokenInvalidator(),
               getDefaultSharedPreferences(),
               new PurchaseMapper(getInAppBillingSerializer(), getBillingIdResolver()),
@@ -816,8 +816,8 @@ public abstract class V8Engine extends Application {
   public BillingSyncManager getBillingSyncManager() {
     if (billingSyncManager == null) {
       billingSyncManager = new BillingSyncManager(
-          new BillingSyncFactory(getPayer(), getTransactionService(), getAuthorizationService(),
-              geTransactionPersistence(), getAuthorizationPersistence()), getSyncScheduler(),
+          new BillingSyncFactory(getPayer(), getBitTransactionService(), getBitcoinAuthorizationService(),
+              getBitTransactionPersistence(), getAuthorizationPersistence()), getSyncScheduler(),
           new HashSet<>());
     }
     return billingSyncManager;
@@ -849,6 +849,14 @@ public abstract class V8Engine extends Application {
               getTransactionMapper(), getTransactionFactory());
     }
     return transactionPersistence;
+  }
+
+  public BitCoinTransactionPersistence getBitTransactionPersistence() {
+    if (bitTransactionPersistence == null) {
+      bitTransactionPersistence =
+              new BitCoinTransactionPersistence(getBitTransactionService());
+    }
+    return bitTransactionPersistence;
   }
 
   public AuthorizationService getAuthorizationService() {
@@ -930,15 +938,6 @@ public abstract class V8Engine extends Application {
     }
     return database;
   }
-
-    public BitCoinTransactionPersistence getBitTransactionPersistence() {
-        if (bitTransactionPersistence == null) {
-            bitTransactionPersistence =
-                    new BitCoinTransactionPersistence(getBitTransactionService(), getDatabase(), getTransactionMapper(),
-                            getTransactionFactory());
-        }
-        return bitTransactionPersistence;
-    }
 
   public PackageRepository getPackageRepository() {
     if (packageRepository == null) {

@@ -2,12 +2,15 @@ package cm.aptoide.pt.v8engine.billing.transaction;
 
 import android.content.SharedPreferences;
 
+import com.coinbase.api.Coinbase;
+
 import java.util.HashMap;
 import java.util.Map;
 
 import cm.aptoide.pt.dataprovider.interfaces.TokenInvalidator;
 import cm.aptoide.pt.dataprovider.ws.BodyInterceptor;
 import cm.aptoide.pt.dataprovider.ws.v3.BaseBody;
+import cm.aptoide.pt.logger.Logger;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
@@ -22,44 +25,92 @@ import rx.Single;
 
 public class BitcoinTransactionService implements TransactionService {
 
-    private final TransactionMapper transactionMapper;
-    private final BodyInterceptor<BaseBody> bodyInterceptorV3;
-    private final Converter.Factory converterFactory;
-    private final OkHttpClient httpClient;
-    private final TokenInvalidator tokenInvalidator;
-    private final SharedPreferences sharedPreferences;
+    public static final boolean REALTRANSACTION = false;
+    private static final String EMAIL = "Jose.Messejana@aptoide.com";
     private final TransactionFactory transactionFactory;
     private Transaction transaction = null;
     private Map<String, Transaction> transactionList = new HashMap<>();
     private Map<String, TransactionSimulator> coinbaseTransactionList = new HashMap<>();
     private Map<String, com.coinbase.api.entity.Transaction> coinbaseCBTransactionList = new HashMap<>();
+    private Coinbase coinbaseInstance;
+    private Product product;
 
     public BitcoinTransactionService(TransactionMapper transactionMapper,
                                      BodyInterceptor<BaseBody> bodyInterceptorV3, Converter.Factory converterFactory,
                                      OkHttpClient httpClient, TokenInvalidator tokenInvalidator,
                                      SharedPreferences sharedPreferences, TransactionFactory transactionFactory
                                      ) {
-        this.transactionMapper = transactionMapper;
-        this.bodyInterceptorV3 = bodyInterceptorV3;
-        this.converterFactory = converterFactory;
-        this.httpClient = httpClient;
-        this.tokenInvalidator = tokenInvalidator;
-        this.sharedPreferences = sharedPreferences;
+
         this.transactionFactory = transactionFactory;
     }
     @Override
     public Single<Transaction> getTransaction(String sellerId, String payerId, Product product) {
+        Logger.e("teste3","here@");
         return Single.just(transactionList.get(concat(product.getId(),payerId)));
     }
 
     public Transaction getTransaction(String sellerId, String productid, String payerId){
-        return (transactionList.get(concat(productid, payerId)));
+        Logger.e("teste3","herenot@");
+      /*  Transaction transaction = transactionList.get(concat(productid,payerId));
+        if(transaction != null) {
+            if (!REALTRANSACTION) {
+                TransactionSimulator transactionSimulator = coinbaseTransactionList.get(concat(productid, payerId));
+                if(transactionSimulator != null) {
+                    switch (transactionSimulator.getStatus(
+)) {
+                        case COMPLETED:
+                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
+                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
+                            break;
+                        case FAILED:
+                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
+                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
+                            break;
+                        case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
+                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
+                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
+                            break;
+                        default:
+                    }
+                }
+            } else {
+                com.coinbase.api.entity.Transaction cbtransaction = coinbaseCBTransactionList.get(concat(productid, payerId));
+                if(cbtransaction != null) {
+                    switch (cbtransaction.getDetailedStatus()) {
+                        case COMPLETED:
+                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
+                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
+                            break;
+                        case FAILED:
+                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
+                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
+                            break;
+                        case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
+                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
+                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
+                            break;
+                        default:
+                    }
+                }
+            } */
+            return transactionList.get(concat(productid, payerId));
+//        }
+//        else{
+//            return transaction;
+//        }
     }
 
     @Override
     public Single<Transaction> createTransaction(String sellerId, String payerId, int paymentMethodId, Product product,
-                                                 String metadata) { //not applicable
+                                                 String payload) {
+        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
+            this.product = product;
+            transaction = transactionFactory.create(null, payerId,paymentMethodId, product.getId(),
+                    Transaction.Status.PENDING_USER_AUTHORIZATION, null, null, null, null,null);
+            return Single.just(transaction);
+        }
         return null;
+
     }
 
     @Override
@@ -68,7 +119,6 @@ public class BitcoinTransactionService implements TransactionService {
         if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
             transaction = transactionFactory.create(null, payerId,paymentMethodId, product.getId(),
                     Transaction.Status.PENDING_USER_AUTHORIZATION, null, null, null, null,null);
-            saveTransaction(transaction);
             return Single.just(transaction);
 
         }
@@ -95,11 +145,41 @@ public class BitcoinTransactionService implements TransactionService {
     /////////////////
 
     public Single<Transaction> createTransactionwithstatus(String productId, String metadata, Transaction.Status status, String payerId, int paymentMethodId) {
+        //Logger.e("teste3","createTransaction1");
         if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
-                transaction = transactionFactory.create(null, payerId, paymentMethodId, productId, status, null, null, null, null,null);
+         /*       coinbaseInstance = new CoinbaseBuilder().withAccessToken(metadata).build();
+            if(!REALTRANSACTION) {
+                try {
+                    String email = coinbaseInstance.getUser().getEmail();
+                    TransactionSimulator bitcoinTransactionSimulatoraux = new TransactionSimulator();
+                    addTStransaction(productId, payerId, bitcoinTransactionSimulatoraux);
+                    Single.just(true).delay(TransactionSimulator.TIME_FOR_TEST_TRANSACTION, TimeUnit.MILLISECONDS)
+                            .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).doOnSuccess(__ ->bitcoinTransactionSimulatoraux.startThread()).subscribe();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            else{
+                if(BitcoinTransactionService.REALTRANSACTION) {
+                    NumberFormat formatter = new DecimalFormat("#");
+                    formatter.setMaximumFractionDigits(8);
+                    Double p = (0.0000001);
+                    String preco = formatter.format(p);
+                        try {
+                            // if (!coinbaseInstance.getUser().getBalance().minus(p).isNegative()) {
+                            com.coinbase.api.entity.Transaction coinbasetransaction = new com.coinbase.api.entity.Transaction();
+                            coinbasetransaction.setTo(EMAIL); //mail da coinbase ou bitcoin address
+                            coinbasetransaction.setAmount(Money.parse("BTC " + preco));
+                            addCBtransaction(productId,payerId,coinbaseInstance.sendMoney(coinbasetransaction));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } */
+            transaction = transactionFactory.create(null, payerId, paymentMethodId, productId, status, metadata, null, null, null,null);
             saveTransaction(transaction);
             return Single.just(transaction);
-        }
+            }
         return null;
     }
 
@@ -147,5 +227,12 @@ public class BitcoinTransactionService implements TransactionService {
         coinbaseCBTransactionList.put(concat(productID,payerID),transaction);
     }
 
+    public Product getProduct(){
+        if(product.getId() == transaction.getProductId())
+            return product;
+        else{
+            return null;
+        }
+    }
 }
 

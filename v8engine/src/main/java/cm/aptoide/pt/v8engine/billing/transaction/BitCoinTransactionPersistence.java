@@ -1,7 +1,5 @@
 package cm.aptoide.pt.v8engine.billing.transaction;
 
-import cm.aptoide.pt.database.accessors.Database;
-import cm.aptoide.pt.database.realm.PaymentConfirmation;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -13,15 +11,9 @@ import rx.Single;
 public class BitCoinTransactionPersistence implements TransactionPersistence {
 
     private final BitcoinTransactionService service;
-    private final Database realm;
-    private final TransactionMapper mapper;
-    private final TransactionFactory factory;
 
-    public BitCoinTransactionPersistence(BitcoinTransactionService service, Database realm, TransactionMapper mapper, TransactionFactory factory) {
+    public BitCoinTransactionPersistence(BitcoinTransactionService service) {
         this.service = service;
-        this.realm = realm;
-        this.mapper = mapper;
-        this.factory = factory;
     }
 
     @Override
@@ -33,16 +25,8 @@ public class BitCoinTransactionPersistence implements TransactionPersistence {
     @Override
     public Observable<Transaction> getTransaction(String sellerId, String payerId, String productId) {
         if(service.getTransaction(sellerId,productId, payerId) == null) {
-            return realm.getRealm()
-                    .map(realm -> realm.where(PaymentConfirmation.class)
-                            .equalTo(PaymentConfirmation.PRODUCT_ID, productId)
-                            .equalTo(PaymentConfirmation.PAYER_ID, payerId))
-                    .flatMap(query -> realm.findAsList(query))
-                    .flatMap(paymentConfirmations -> Observable.from(paymentConfirmations)
-                            .map(paymentConfirmation -> mapper.map(paymentConfirmation))
-                            .defaultIfEmpty(
-                                    factory.create(sellerId, payerId, -1,productId,Transaction.Status.NEW, null, null,
-                                            null, null, null)));
+            service.createTransactionwithstatus(productId,null,Transaction.Status.NEW, payerId, -1);
+            return Observable.just(new Transaction(productId,payerId,Transaction.Status.NEW,-1, null, sellerId));
         }
         return Observable.just(service.getTransaction(sellerId, productId,payerId));
     }

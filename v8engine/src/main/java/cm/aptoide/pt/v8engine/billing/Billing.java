@@ -5,6 +5,8 @@
 
 package cm.aptoide.pt.v8engine.billing;
 
+import java.util.List;
+
 import cm.aptoide.pt.v8engine.billing.authorization.Authorization;
 import cm.aptoide.pt.v8engine.billing.authorization.AuthorizationRepository;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentFailureException;
@@ -12,7 +14,6 @@ import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedExcept
 import cm.aptoide.pt.v8engine.billing.product.SimplePurchase;
 import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionRepository;
-import java.util.List;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;

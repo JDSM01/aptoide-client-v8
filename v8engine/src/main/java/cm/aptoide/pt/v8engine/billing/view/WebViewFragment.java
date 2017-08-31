@@ -11,15 +11,13 @@ import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Toast;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.jakewharton.rxrelay.PublishRelay;
 
 import cm.aptoide.pt.v8engine.R;
-import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
-import cm.aptoide.pt.v8engine.billing.view.bitcoin.CoinbasePresenter;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.rx.RxAlertDialog;
 import rx.Observable;
@@ -31,12 +29,11 @@ public abstract class WebViewFragment extends PermissionServiceFragment
   private View indeterminateProgressBar;
   private RxAlertDialog unknownErrorDialog;
   private PublishRelay<Void> urlLoadErrorSubject;
-    private PublishRelay<Void> mainUrlSubject;
+  private PublishRelay<Void> mainUrlSubject;
   private PublishRelay<Void> redirectUrlSubject;
   private PublishRelay<Void> backButtonSelectionSubject;
   private ClickHandler clickHandler;
   private ProgressDialog progressDialog;
-  private String redirect_url;
   private ProgressBar determinateProgressBar;
 
   @Override public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -120,14 +117,19 @@ public abstract class WebViewFragment extends PermissionServiceFragment
     webView.loadUrl(mainUrl);
   }
 
-  public void loadWebsitewithContainingRedirect(String mainUrl, String redirectUrl) {
+  public void loadWebsitewithContainingRedirect(String mainUrl, String redirectUrl, boolean isCoinbase) {
+    webView.setWebChromeClient(new WebChromeClient() {
+      @Override public void onProgressChanged(WebView view, int progress) {
+        determinateProgressBar.setProgress(progress);
+      }
+    });
     webView.setWebViewClient(new WebViewClient() {
 
       @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
         if (url.contains(redirectUrl)) {
           CoinbaseOAuth.cbredirectUrl = url;
-          showProgressBar();
+          if(isCoinbase) showProgressBar();
           redirectUrlSubject.call(null);
         }
       }
@@ -141,13 +143,11 @@ public abstract class WebViewFragment extends PermissionServiceFragment
   }
 
   public void showProgressBar(){
-    if(false) {
       String text = "Wating to confirm transaction, please wait";
       progressDialog = new ProgressDialog(getActivity());
       progressDialog.setTitle("Transaction Status");
       progressDialog.setMessage(text);
       progressDialog.show();
-    }
   }
 
   public void showCompleteToast(String state){

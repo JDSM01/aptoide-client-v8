@@ -12,7 +12,6 @@ import java.util.List;
 
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
-import cm.aptoide.pt.v8engine.billing.BitcoinBillingService;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedException;
@@ -36,7 +35,6 @@ public class PaymentPresenter implements Presenter {
   private final String productId;
   private final String payload;
     private final BitcoinTransactionService bitcoinTransactionService;
-    public static boolean isPending = false;
 
   public PaymentPresenter(PaymentView view, Billing billing, BillingNavigator navigator,BillingAnalytics analytics, BitcoinTransactionService bitcoinTransactionService,
        String sellerId, String productId, String payload) {
@@ -134,7 +132,7 @@ public class PaymentPresenter implements Presenter {
         .filter(authenticated -> authenticated)
         .observeOn(AndroidSchedulers.mainThread())
         .doOnNext(__ -> view.showPurchaseLoading())
-            .doOnNext(product ->handleTransactionStatus(productId))
+            .doOnNext(__ ->handleTransactionStatus())
         .flatMap(__ -> billing.getPurchase(sellerId, productId)
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext(purchase -> {
@@ -196,8 +194,7 @@ public class PaymentPresenter implements Presenter {
             .doOnNext(buySelection -> view.showBuyLoading())
             .flatMapSingle(selection -> billing.getProduct(sellerId, productId))
             .flatMapCompletable(product -> billing.getSelectedPaymentMethod(sellerId, productId)
-                .doOnSuccess(
-                    payment -> analytics.sendPaymentViewBuyEvent(product, payment.getName()))
+                        .doOnSuccess(payment -> analytics.sendPaymentViewBuyEvent(product, payment.getName()))
                 .flatMapCompletable(payment -> billing.processPayment(sellerId, productId, payload)
                     .observeOn(AndroidSchedulers.mainThread())
                     .doOnCompleted(() -> {
@@ -261,49 +258,53 @@ public class PaymentPresenter implements Presenter {
         .toCompletable();
   }
 
-  private void handleTransactionStatus(String productID) {
+  private boolean handleTransactionStatus() {
     Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
     if (aptoideTransaction != null) {
-        if(!BitcoinBillingService.REALTRANSACTION) {
-            TransactionSimulator tssim = bitcoinTransactionService.getTStransaction(productID, aptoideTransaction.getPayerId());
+        if(!BitcoinTransactionService.REALTRANSACTION) {
+            TransactionSimulator tssim = bitcoinTransactionService.getTStransaction(productId, aptoideTransaction.getPayerId());
             if (tssim != null) {
                 switch (tssim.getStatus()) {
-                    case COMPLETE:
-                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                    case COMPLETED:
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productId,
                                 aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                                 cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
-                        break;
+                        return true;
+                      //  break;
                     case FAILED:
-                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productId,
                                 aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                                 cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
-                        break;
+                        return true;
+                       // break;
                     case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productId,
                                 aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                                 cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
                     case PENDING:
-                        break;
+                        return false;
+                     //   break;
                     default:
-                        break;
+                        return false;
+                     //   break;
                 }
             }
         } else{
-            com.coinbase.api.entity.Transaction cbtransaction = bitcoinTransactionService.getCBtransaction(productID, aptoideTransaction.getPayerId());
+            com.coinbase.api.entity.Transaction cbtransaction = bitcoinTransactionService.getCBtransaction(productId, aptoideTransaction.getPayerId());
             if (cbtransaction != null) {
                 switch (cbtransaction.getDetailedStatus()) {
                     case COMPLETED:
-                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productId,
                                 aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                                 cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
                         break;
                     case FAILED:
-                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productId,
                                 aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                                 cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
                         break;
                     case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productID,
+                        bitcoinTransactionService.createTransactionStatusUpdate(aptoideTransaction.getSellerId(), productId,
                                 aptoideTransaction.getPaymentMethodId(), aptoideTransaction.getPayerId(),
                                 cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
                     case PENDING:
@@ -314,5 +315,6 @@ public class PaymentPresenter implements Presenter {
             }
         }
     }
+    return false;
   }
 }

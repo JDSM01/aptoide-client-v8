@@ -24,9 +24,6 @@ import cm.aptoide.pt.v8engine.billing.view.WebViewFragment;
 
 public class CoinbaseFragment extends WebViewFragment implements WebView{
 
-    private static final String EXTRA_PAYMENT_METHOD_ID =
-            "cm.aptoide.pt.v8engine.billing.view.extra.PAYMENT_METHOD_ID";
-
     private Billing billing;
     private BillingAnalytics billingAnalytics;
     private AptoideAccountManager accountManager;

@@ -12,20 +12,19 @@ import com.coinbase.api.exception.UnauthorizedException;
 
 import org.joda.money.Money;
 
-import java.io.IOException;
 import java.net.URI;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
-import cm.aptoide.pt.v8engine.billing.BitcoinBillingService;
-import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
-import cm.aptoide.pt.v8engine.billing.view.WebViewFragment;
 import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import rx.Single;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by jose_messejana on 18-08-2017.
@@ -38,12 +37,13 @@ public class CoinbaseOAuth {
     static final String CLIENT_SECRET = "98f9a4e6b144bf5729033fa0eb5a16986c83f48e70446fa7a178be6d7dc3cce0";
     private static final String EMAIL = "Jose.Messejana@aptoide.com";
     private final BitcoinTransactionService service;
-    private Coinbase coinbaseInstance;
     private String CSRFtoken = null;
     private OAuthTokensResponse tokens;
+    private Coinbase coinbaseInstance = null;
     private Transaction bitCBTransaction = null;
     private TransactionSimulator bitcoinTransactionSimulator = null;
-    private Map<String, Coinbase> existing_tokens = new HashMap<>();
+    private Map<String, OAuthTokensResponse> existing_tokens = new HashMap<>();
+    private Map<String, Coinbase> existing_instance = new HashMap<>();
     private double price;
 
     public CoinbaseOAuth(BitcoinTransactionService service){
@@ -68,7 +68,7 @@ public class CoinbaseOAuth {
         try {
             OAuthCodeRequest.Meta meta = null; // Comment this line to sendCoins
             String scope = "user";
-            if(BitcoinBillingService.REALTRANSACTION) {
+            if(BitcoinTransactionService.REALTRANSACTION) {
                  meta = new OAuthCodeRequest.Meta();
                  meta.setSendLimitAmount(Money.parse("USD 1.0"));
                  meta.setSendLimitPeriod(OAuthCodeRequest.Meta.Period.DAILY);
@@ -88,7 +88,7 @@ public class CoinbaseOAuth {
         return null;
     }
 
-    public void completeAuth (){
+    public Single<OAuthTokensResponse> completeAuth (){
         Uri redirectUri = Uri.parse(cbredirectUrl);
         try {
             String csrfToken = redirectUri.getQueryParameter("state");
@@ -99,11 +99,14 @@ public class CoinbaseOAuth {
                     throw new UnauthorizedException(ex1);
                 } else {
                     try {
+                        CSRFtoken = null;
                         Coinbase ex = (new CoinbaseBuilder()).build();
                         Uri redirectUriWithoutQuery = redirectUri.buildUpon().clearQuery().build();
                         tokens = ex.getTokens(CLIENT_ID, CLIENT_SECRET, authCode, redirectUriWithoutQuery.toString()); //javax.net.ssl.SSLHandshakeException: java.security.cert.CertPathValidatorException: Trust anchor for certification path not found.
                         coinbaseInstance = new CoinbaseBuilder().withAccessToken(tokens.getAccessToken()).build();
-                        existing_tokens.put(service.getTransaction().getPayerId(),coinbaseInstance);
+                        existing_tokens.put(service.getTransaction().getPayerId(),tokens);
+                        existing_instance.put(service.getTransaction().getPayerId(),coinbaseInstance);
+                        return Single.just(tokens);
                     } catch (Exception var8) {
                         var8.printStackTrace();
                         throw new UnauthorizedException(var8.getMessage());
@@ -114,10 +117,12 @@ public class CoinbaseOAuth {
             }
         } catch(UnauthorizedException e){;}
         catch(Exception e){;}
+        return null;
     }
 
     public Single<Boolean> existsToken(){
-        Coinbase cbinstance = existing_tokens.get(service.getTransaction().getPayerId());
+      //  return Single.just(false);
+        Coinbase cbinstance = existing_instance.get(service.getTransaction().getPayerId());
         try{
             cbinstance.getUser().getEmail();
             return Single.just(true);
@@ -125,36 +130,61 @@ public class CoinbaseOAuth {
         }
     }
 
-    public void revokeToken(){
-        if(tokens != null){
-            try {
-                coinbaseInstance.revokeToken();
-            } catch (CoinbaseException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public Single<OAuthTokensResponse> getToken(){
+        return Single.just(existing_tokens.get(service.getTransaction().getPayerId()));
     }
+//    public void revokeToken(){
+//        if(tokens != null){
+//            try {
+//                coinbaseInstance.revokeToken();
+//            } catch (CoinbaseException e) {
+//                e.printStackTrace();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
-    public Single<String> getCoinbaseUserEmail(){
-        if(!BitcoinBillingService.REALTRANSACTION) {
+    public void createTransaction(){
+        if(!BitcoinTransactionService.REALTRANSACTION) {
             try {
-                String s = coinbaseInstance.getUser().getEmail();
-                bitcoinTransactionSimulator = new TransactionSimulator();
-                service.addTStransaction(service.getTransaction().getProductId(), service.getTransaction().getPayerId(), bitcoinTransactionSimulator);
-                bitcoinTransactionSimulator.startThread();
-                Single.just(s);
-            } catch (Exception e) {
+                 String s = coinbaseInstance.getUser().getEmail();
+                TransactionSimulator bitcoinTransactionSimulatoraux = new TransactionSimulator();
+                bitcoinTransactionSimulator  = bitcoinTransactionSimulatoraux;
+                String payerId = service.getTransaction().getPayerId();
+                String productId = service.getTransaction().getProductId();
+                service.addTStransaction(productId, payerId, bitcoinTransactionSimulatoraux);
+                Single.just(true).delay(TransactionSimulator.TIME_FOR_TEST_TRANSACTION, TimeUnit.MILLISECONDS)
+                        .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).doOnSuccess(__ ->bitcoinTransactionSimulatoraux.startThread()).subscribe();
+                setTransactionToPending();
+            } catch (Exception e) { e.printStackTrace();
             }
         }
-            return null;
+        else {
+            NumberFormat formatter = new DecimalFormat("#");
+            formatter.setMaximumFractionDigits(8);
+            if (service.getProduct() != null) {
+                Double p = (service.getProduct().getPrice().getAmount() * CONVERSION_RATE);
+                String preco = formatter.format(p);
+                try {
+                    // if (!coinbaseInstance.getUser().getBalance().minus(p).isNegative()) {
+                    com.coinbase.api.entity.Transaction coinbasetransaction = new Transaction();
+                    coinbasetransaction.setTo(EMAIL); //mail da coinbase ou bitcoin address
+                    coinbasetransaction.setAmount(Money.parse("BTC " + preco));
+                    bitCBTransaction = coinbaseInstance.sendMoney(coinbasetransaction);
+                    service.addCBtransaction(service.getTransaction().getProductId(), service.getTransaction().getPayerId(), bitCBTransaction);
+                    setTransactionToPending();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public boolean isFinalStatus(){
-        if(!BitcoinBillingService.REALTRANSACTION) {
+        if(!BitcoinTransactionService.REALTRANSACTION) {
             TransactionSimulator.Estado state = bitcoinTransactionSimulator.getStatus();
-            if (state.equals(TransactionSimulator.Estado.COMPLETE)
+            if (state.equals(TransactionSimulator.Estado.COMPLETED)
                     || state.equals(TransactionSimulator.Estado.FAILED)
                     || state.equals(TransactionSimulator.Estado.CANCELED)) {
                 return true;
@@ -171,31 +201,31 @@ public class CoinbaseOAuth {
             }
     }
 
-    public void handleTransactionStatus(WebViewFragment view) {
+    public void handleTransactionStatus(TransactionSimulator transactionSimulator) {
         cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction = service.getTransaction();
-        if(!BitcoinBillingService.REALTRANSACTION) {
-            handleSimTransaction(view,transaction);
+        if(!BitcoinTransactionService.REALTRANSACTION) {
+            handleSimTransaction(transaction, transactionSimulator);
         }else{
-            handleRealTransaction(view,transaction);
+            handleRealTransaction(transaction);
         }
     }
 
-    private void handleSimTransaction(WebViewFragment view, cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction){
-        switch (bitcoinTransactionSimulator.getStatus()) {
-            case COMPLETE:
-                view.showCompleteToast("complete");
+    private void handleSimTransaction(cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction, TransactionSimulator transactionSimulator){
+        switch (transactionSimulator.getStatus()) {
+            case COMPLETED:
+               // view.showCompleteToast("complete");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
                         transaction.getPaymentMethodId(), transaction.getPayerId(),
                         cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
                 break;
             case FAILED:
-                view.showCompleteToast("failed");
+           //     view.showCompleteToast("failed");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
                         transaction.getPaymentMethodId(), transaction.getPayerId(),
                         cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
                 break;
             case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-                view.showCompleteToast("canceled");
+          //      view.showCompleteToast("canceled");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
                         transaction.getPaymentMethodId(), transaction.getPayerId(),
                         cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
@@ -205,48 +235,22 @@ public class CoinbaseOAuth {
     }
 ////////////////Real Transaction///////////////////
 
-
-    public void sendCoins(WebViewFragment view){
-        if(BitcoinBillingService.REALTRANSACTION) {
-            NumberFormat formatter = new DecimalFormat("#");
-            formatter.setMaximumFractionDigits(8);
-            Double p = (price * CONVERSION_RATE);
-            String preco = formatter.format(p);
-            try {
-               // if (!coinbaseInstance.getUser().getBalance().minus(p).isNegative()) {
-                    com.coinbase.api.entity.Transaction coinbasetransaction = new Transaction();
-                    coinbasetransaction.setTo(EMAIL); //mail da coinbase ou bitcoin address
-                    coinbasetransaction.setAmount(Money.parse("BTC " + preco));
-                    bitCBTransaction = coinbaseInstance.sendMoney(coinbasetransaction);
-//                } else {
-//                    view.showCompleteToast("Not enough money");
-//                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        }
-
-    public void setPrice(Product product){
-        price = product.getPrice().getAmount();
-    }
-
-    private void handleRealTransaction(WebViewFragment view, cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction){
+    private void handleRealTransaction(cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction){
         switch(bitCBTransaction.getDetailedStatus()){
             case COMPLETED:
-                view.showCompleteToast("complete");
+        //        view.showCompleteToast("complete");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
                         transaction.getPaymentMethodId(), transaction.getPayerId(),
                         cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
                 break;
             case FAILED:
-                view.showCompleteToast("failed");
+       //         view.showCompleteToast("failed");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
                         transaction.getPaymentMethodId(), transaction.getPayerId(),
                         cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
                 break;
             case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-                view.showCompleteToast("canceled");
+        //        view.showCompleteToast("canceled");
                 service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
                         transaction.getPaymentMethodId(), transaction.getPayerId(),
                         cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
@@ -254,6 +258,13 @@ public class CoinbaseOAuth {
             default:
 
         }
+    }
+
+    private void setTransactionToPending(){
+        cm.aptoide.pt.v8engine.billing.transaction.Transaction transaction = service.getTransaction();
+        service.createTransactionStatusUpdate(transaction.getSellerId(),transaction.getProductId(),
+                transaction.getPaymentMethodId(), transaction.getPayerId(),
+                cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.PENDING);
     }
 }
 

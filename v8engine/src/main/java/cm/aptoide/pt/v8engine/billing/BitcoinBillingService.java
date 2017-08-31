@@ -27,7 +27,6 @@ import cm.aptoide.pt.v8engine.billing.product.InAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.PaidAppPurchase;
 import cm.aptoide.pt.v8engine.billing.product.ProductFactory;
 import cm.aptoide.pt.v8engine.billing.product.SimplePurchase;
-import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
 import okhttp3.OkHttpClient;
 import retrofit2.Converter;
 import rx.Completable;

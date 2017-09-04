@@ -23,6 +23,7 @@ public class TransactionFactory {
             successUrl, payload, sellerId);
       case PaymentMethodMapper.BOA_COMPRA:
       case PaymentMethodMapper.BITCOIN:
+          return new LocalTransaction(productId, payerId, status, paymentMethodId, metadata, payload, sellerId);
       case PaymentMethodMapper.BOA_COMPRA_GOLD:
       case PaymentMethodMapper.SANDBOX:
       default:

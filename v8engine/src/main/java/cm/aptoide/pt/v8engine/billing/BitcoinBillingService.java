@@ -163,7 +163,6 @@ public class BitcoinBillingService implements BillingService {
         if (idResolver.isPaidAppId(productId)) {
             return getPaidAppProduct(productId);
         }
-
         return Single.error(new IllegalArgumentException("Invalid product id " + productId));
     }
 

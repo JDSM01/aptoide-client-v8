@@ -16,8 +16,6 @@ import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.exception.PaymentMethodNotAuthorizedException;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
-import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
-import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import cm.aptoide.pt.v8engine.presenter.Presenter;
 import cm.aptoide.pt.v8engine.presenter.View;
 import rx.Completable;
@@ -132,7 +130,6 @@ public class PaymentPresenter implements Presenter {
         .filter(authenticated -> authenticated)
         .observeOn(AndroidSchedulers.mainThread())
         .doOnNext(__ -> view.showPurchaseLoading())
-            .doOnNext(__ ->handleTransactionStatus())
         .flatMap(__ -> billing.getPurchase(sellerId, productId)
             .observeOn(AndroidSchedulers.mainThread())
             .doOnNext(purchase -> {
@@ -258,7 +255,7 @@ public class PaymentPresenter implements Presenter {
         .toCompletable();
   }
 
-  private boolean handleTransactionStatus() {
+  /* private boolean handleTransactionStatus() {
     Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
     if (aptoideTransaction != null) {
         if(!BitcoinTransactionService.REALTRANSACTION) {
@@ -316,5 +313,5 @@ public class PaymentPresenter implements Presenter {
         }
     }
     return false;
-  }
+  } */
 }

@@ -5,6 +5,9 @@
 
 package cm.aptoide.pt.v8engine.billing.sync;
 
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
+
 import cm.aptoide.pt.v8engine.billing.Payer;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.transaction.LocalTransaction;
@@ -12,8 +15,6 @@ import cm.aptoide.pt.v8engine.billing.transaction.Transaction;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionPersistence;
 import cm.aptoide.pt.v8engine.billing.transaction.TransactionService;
 import cm.aptoide.pt.v8engine.sync.Sync;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -67,6 +68,6 @@ public class TransactionSync extends Sync {
   private Single<Transaction> syncTransaction(String payerId, String sellerId) {
     return transactionService.getTransaction(sellerId, payerId, product)
         .flatMap(transaction -> transactionPersistence.saveTransaction(transaction)
-            .andThen(Single.just(transaction)));
+                .andThen(Single.just(transaction)));
   }
 }

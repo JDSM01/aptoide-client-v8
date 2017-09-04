@@ -6,7 +6,9 @@
 package cm.aptoide.pt.v8engine.billing;
 
 import android.content.SharedPreferences;
+
 import java.util.List;
+
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -26,11 +28,11 @@ public class SharedPreferencesPaymentMethodSelector implements PaymentMethodSele
 
   @Override public Single<PaymentMethod> selectedPaymentMethod(List<PaymentMethod> paymentMethods) {
     return getSelectedPaymentMethodId().flatMap(
-        selectedPaymentId -> paymentMethod(paymentMethods, selectedPaymentId).switchIfEmpty(
-            paymentMethod(paymentMethods, defaultPaymentId))
-            .switchIfEmpty(Observable.just(paymentMethods.get(0)))
-            .first()
-            .toSingle());
+            selectedPaymentId -> paymentMethod(paymentMethods, selectedPaymentId).switchIfEmpty(
+                    paymentMethod(paymentMethods, defaultPaymentId))
+                    .switchIfEmpty(Observable.just(paymentMethods.get(0)))
+                    .first()
+                    .toSingle());
   }
 
   @Override public Completable selectPaymentMethod(PaymentMethod selectedPaymentMethod) {

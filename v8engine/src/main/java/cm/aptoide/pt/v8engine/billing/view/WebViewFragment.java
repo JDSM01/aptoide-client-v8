@@ -12,7 +12,6 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import com.jakewharton.rxrelay.PublishRelay;
 
@@ -117,7 +116,7 @@ public abstract class WebViewFragment extends PermissionServiceFragment
     webView.loadUrl(mainUrl);
   }
 
-  public void loadWebsitewithContainingRedirect(String mainUrl, String redirectUrl, boolean isCoinbase) {
+  public void loadWebsitewithContainingRedirect(String mainUrl, String redirectUrl) {
     webView.setWebChromeClient(new WebChromeClient() {
       @Override public void onProgressChanged(WebView view, int progress) {
         determinateProgressBar.setProgress(progress);
@@ -129,7 +128,6 @@ public abstract class WebViewFragment extends PermissionServiceFragment
         super.onPageStarted(view, url, favicon);
         if (url.contains(redirectUrl)) {
           CoinbaseOAuth.cbredirectUrl = url;
-          if(isCoinbase) showProgressBar();
           redirectUrlSubject.call(null);
         }
       }
@@ -141,20 +139,6 @@ public abstract class WebViewFragment extends PermissionServiceFragment
     });
     webView.loadUrl(mainUrl);
   }
-
-  public void showProgressBar(){
-      String text = "Wating to confirm transaction, please wait";
-      progressDialog = new ProgressDialog(getActivity());
-      progressDialog.setTitle("Transaction Status");
-      progressDialog.setMessage(text);
-      progressDialog.show();
-  }
-
-  public void showCompleteToast(String state){
-    Toast.makeText(getActivity(), "Transaction "+state,
-            Toast.LENGTH_SHORT).show();
-  }
-
 
   public Observable<Void> redirectUrlEvent() {
     return redirectUrlSubject;

@@ -8,20 +8,20 @@ import cm.aptoide.pt.logger.Logger;
 
 public class TransactionSimulator{
     private Estado status;
-    public static final int TIME_FOR_TEST_TRANSACTION = 25000; //10s
+    public static final int TIME_FOR_TEST_TRANSACTION = 10000; //10s
 
 
     public TransactionSimulator(){
         status = Estado.PENDING;
     }
 
-    public Estado getStatus(){
+    public Estado   getStatus(){
         return status;
     }
 
     public void startThread(){
-                Logger.e("teste3","25sec passed");
-                status = Estado.COMPLETED;
+        Logger.e("teste3",TIME_FOR_TEST_TRANSACTION+"sec passed");
+        status = Estado.COMPLETED;
             }
 
     public enum Estado{

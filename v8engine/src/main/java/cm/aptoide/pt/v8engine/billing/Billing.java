@@ -71,7 +71,7 @@ public class Billing {
 
   public Single<List<PaymentMethod>> getPaymentMethods(String sellerId, String productId) {
     return getProduct(sellerId, productId).flatMap(
-        product -> billingService.getPaymentMethods(product));
+            product -> billingService.getPaymentMethods(product));
   }
 
   public Completable processPayment(String sellerId, String productId, String payload) {
@@ -96,9 +96,9 @@ public class Billing {
   public Completable processLocalPayment(String sellerId, String productId, String payload,
       String localMetadata) {
     return getSelectedPaymentMethod(sellerId, productId).flatMap(
-        paymentMethod -> getProduct(sellerId, productId).flatMap(
-            product -> transactionRepository.createTransaction(sellerId, paymentMethod.getId(),
-                product, localMetadata, payload)))
+            paymentMethod -> getProduct(sellerId, productId).flatMap(
+                    product -> transactionRepository.createTransaction(sellerId, paymentMethod.getId(),
+                            product, localMetadata, payload)))
         .toCompletable();
   }
 
@@ -149,7 +149,7 @@ public class Billing {
 
   public Single<PaymentMethod> getSelectedPaymentMethod(String sellerId, String productId) {
     return getPaymentMethods(sellerId, productId).flatMap(
-        paymentMethods -> paymentMethodSelector.selectedPaymentMethod(paymentMethods));
+            paymentMethods -> paymentMethodSelector.selectedPaymentMethod(paymentMethods));
   }
 
   private Single<PaymentMethod> getPaymentMethod(int paymentMethodId, String sellerId,

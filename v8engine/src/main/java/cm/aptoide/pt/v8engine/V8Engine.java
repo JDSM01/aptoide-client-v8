@@ -816,7 +816,7 @@ public abstract class V8Engine extends Application {
   public BillingSyncManager getBillingSyncManager() {
     if (billingSyncManager == null) {
       billingSyncManager = new BillingSyncManager(
-          new BillingSyncFactory(getPayer(), getBitTransactionService(), getBitcoinAuthorizationService(),
+          new BillingSyncFactory(getPayer(), getBitTransactionService(), getAuthorizationService(),
               getBitTransactionPersistence(), getAuthorizationPersistence()), getSyncScheduler(),
           new HashSet<>());
     }
@@ -854,7 +854,8 @@ public abstract class V8Engine extends Application {
   public BitCoinTransactionPersistence getBitTransactionPersistence() {
     if (bitTransactionPersistence == null) {
       bitTransactionPersistence =
-              new BitCoinTransactionPersistence(getBitTransactionService());
+              new BitCoinTransactionPersistence(new HashMap<>(), PublishRelay.create(),
+                      getBitTransactionService(), getTransactionFactory());
     }
     return bitTransactionPersistence;
   }

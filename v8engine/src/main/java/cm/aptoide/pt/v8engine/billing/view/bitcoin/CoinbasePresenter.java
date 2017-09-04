@@ -52,11 +52,12 @@ public class CoinbasePresenter implements Presenter {
     private void onViewCreateBitcoinPayment() {
             view.getLifecycle()
                     .filter(event -> event.equals(View.LifecycleEvent.CREATE)).observeOn(Schedulers.io())
-                    .flatMapSingle(exists -> coinbaseOAuth.existsToken())
-                    .flatMapSingle(exists -> {
-                        if (exists){ tokenexists = true; /*return Single.just(REDIRECT_URI);*/ }
-                        else{ tokenexists = false; }return coinbaseOAuth.beginAuth(REDIRECT_URI); }).observeOn(AndroidSchedulers.mainThread())
-                    .doOnNext(uri -> view.loadWebsitewithContainingRedirect(uri.toString(), REDIRECT_URI, true))
+                    //.flatMapSingle(exists -> coinbaseOAuth.existsToken())
+                    //.flatMapSingle(exists -> {
+                    //    if (exists){ tokenexists = true; /*return Single.just(REDIRECT_URI);*/ }
+                    //    else{ tokenexists = false; }return coinbaseOAuth.beginAuth(REDIRECT_URI); })
+                    .flatMapSingle(__ -> coinbaseOAuth.beginAuth(REDIRECT_URI)).observeOn(AndroidSchedulers.mainThread())
+                    .doOnNext(uri -> view.loadWebsitewithContainingRedirect(uri.toString(), REDIRECT_URI))
                     .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
                     .subscribe(__ -> {
                     }, throwable -> {
@@ -71,22 +72,17 @@ public class CoinbasePresenter implements Presenter {
             view.getLifecycle()
                     .filter(event -> event.equals(View.LifecycleEvent.CREATE))
                     .flatMap(created -> view.redirectUrlEvent()).observeOn(Schedulers.io())
-                    .flatMapSingle(__ -> {
-                        if(!tokenexists){ return coinbaseOAuth.completeAuth();
-                        }else{ return coinbaseOAuth.getToken();}
-                    })
-                   .doOnNext(token -> billing.processLocalPayment(sellerId,productId,null,token.getAccessToken())).observeOn(AndroidSchedulers.mainThread())
-                   .doOnNext(__ -> coinbaseOAuth.createTransaction()).observeOn(AndroidSchedulers.mainThread())
-             //      .filter(__ -> coinbaseOAuth.isFinalStatus())
-             //      .doOnNext(__ -> coinbaseOAuth.handleTransactionStatus(null))
-                    // .doOnNext( __ -> navigator.popTransactionAuthorizationView())
- //                      .doOnCompleted( () -> view.showLoading())
-
-        .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
+                   .flatMapCompletable(__ -> billing.processLocalPayment(sellerId, productId, null, coinbaseOAuth.completeAuth().getAccessToken())
+                           .observeOn(AndroidSchedulers.mainThread())
+                           .doOnCompleted(() -> {
+                               view.hideLoading();
+                               navigator.popTransactionAuthorizationView();
+                           }))
+            .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))
                     .subscribe(__ -> {
                     }, throwable -> {
                         view.hideLoading();
-                        view.showError();
+                            view.showError();
                     });
 
     }

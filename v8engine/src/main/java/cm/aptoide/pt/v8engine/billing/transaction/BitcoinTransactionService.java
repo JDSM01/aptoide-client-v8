@@ -7,8 +7,7 @@ import com.coinbase.api.CoinbaseBuilder;
 
 import org.joda.money.Money;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import cm.aptoide.pt.dataprovider.interfaces.TokenInvalidator;
 import cm.aptoide.pt.dataprovider.ws.BodyInterceptor;
 import cm.aptoide.pt.dataprovider.ws.v3.BaseBody;
-import cm.aptoide.pt.logger.Logger;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
@@ -33,13 +31,16 @@ import rx.schedulers.Schedulers;
 
 public class BitcoinTransactionService implements TransactionService {
 
-    public static final boolean REALTRANSACTION = false;
-    public static final String EMAIL = "Jose.Messejana@aptoide.com";
+    public static final boolean REALTRANSACTION = true;
+    public static final String EMAIL = "";
     private final TransactionFactory transactionFactory;
     private Transaction currentTransaction;
     private Map<String, Transaction> transactionList = new HashMap<>();
     private Map<String, TransactionSimulator> coinbaseTransactionList = new HashMap<>();
     private Map<String, String> coinbaseCBTransactionList = new HashMap<>();
+    public static BigDecimal CONVERSION_RATEUSD = BigDecimal.valueOf(0.000228); // From September 5th 2017
+    public static BigDecimal CONVERSION_RATEEUR = BigDecimal.valueOf(0.000265);
+    private Map<String, Product> products = new HashMap<>();
 
     public BitcoinTransactionService(TransactionMapper transactionMapper,
                                      BodyInterceptor<BaseBody> bodyInterceptorV3, Converter.Factory converterFactory,
@@ -112,66 +113,15 @@ public class BitcoinTransactionService implements TransactionService {
         return Single.just(transaction);
     }
 
-
-  /*  public Transaction getTransaction(String sellerId, String productid, String payerId){
-        Logger.e("teste3","herenot@");
-        Transaction transaction = transactionList.get(concat(productid,payerId));
-        if(transaction != null) {
-            if (!REALTRANSACTION) {
-                TransactionSimulator transactionSimulator = coinbaseTransactionList.get(concat(productid, payerId));
-                if(transactionSimulator != null) {
-                    switch (transactionSimulator.getStatus(
-)) {
-                        case COMPLETED:
-                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
-                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
-                            break;
-                        case FAILED:
-                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
-                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
-                            break;
-                        case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
-                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
-                            break;
-                        default:
-                    }
-                }
-            } else {
-                com.coinbase.api.entity.Transaction cbtransaction = coinbaseCBTransactionList.get(concat(productid, payerId));
-                if(cbtransaction != null) {
-                    switch (cbtransaction.getDetailedStatus()) {
-                        case COMPLETED:
-                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
-                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.COMPLETED);
-                            break;
-                        case FAILED:
-                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
-                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.FAILED);
-                            break;
-                        case CANCELED: //BitCoin Transactions cannot be canceled, however the SDK has a CANCELED STATUS so it's better to handle it
-                            createTransactionStatusUpdate(sellerId, productid, transaction.getPaymentMethodId(), payerId,
-                                    cm.aptoide.pt.v8engine.billing.transaction.Transaction.Status.CANCELED);
-                            break;
-                        default:
-                    }
-                }
-            }
-            return transactionList.get(concat(productid, payerId));
-        }
-       else{
-            return transaction;
-        }
-    } */
-
     @Override
     public Single<Transaction> createTransaction(String sellerId, String payerId, int paymentMethodId, Product product,
                                                  String payload) {
         Transaction transaction = null;
-        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
+        if (paymentMethodId == PaymentMethodMapper.BITCOIN) {
+            products.put(product.getId(),product);
             transaction = transactionFactory.create(null, payerId,paymentMethodId, product.getId(),
                     Transaction.Status.PENDING_USER_AUTHORIZATION, null, null, null, null,null);
-            return saveTransaction(transaction).andThen(Single.just(transaction));
+            saveTransaction(transaction);
         }
         return Single.just(transaction);
 
@@ -180,51 +130,51 @@ public class BitcoinTransactionService implements TransactionService {
     @Override
     public Single<Transaction> createTransaction(String sellerId, String payerId, int paymentMethodId, Product product,
                                                  String metadata, String payload) {
-        Logger.e("teste3","herenot");
-        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
-
-        }
         return null;
     }
 
     public Single<Transaction> createTransactionwithMeta(String sellerId, String payerId, int paymentMethodId, String productId,
                                                          Transaction.Status status, String metadata) {
         Transaction transaction = null;
-        if (paymentMethodId == PaymentMethodMapper.BITCOIN) { //may need to check if OAuth is already there
+        if (paymentMethodId == PaymentMethodMapper.BITCOIN) {
             try {
                 Coinbase coinbaseInstance = new CoinbaseBuilder().withAccessToken(metadata).build();
                 if (!REALTRANSACTION) {
-                    String s = coinbaseInstance.getUser().getEmail();
+                    coinbaseInstance.getUser().getEmail();
                     TransactionSimulator transactionSimulator = new TransactionSimulator();
                     Single.just(true).delay(TransactionSimulator.TIME_FOR_TEST_TRANSACTION, TimeUnit.MILLISECONDS)
                             .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                             .doOnSuccess(__ -> transactionSimulator.startThread())
-                            .subscribe(__ -> Logger.e("teste3",transactionSimulator.getStatus().toString()),throwable -> throwable.printStackTrace());
+                            .subscribe(__ -> {},throwable -> throwable.printStackTrace());
                     addTStransaction(productId,payerId,transactionSimulator);
                 }
                 else{
-                    NumberFormat formatter = new DecimalFormat("#");
-                    formatter.setMaximumFractionDigits(8);
-                    Double p = (0.0000001);
-                    String preco = formatter.format(p);
-                    // if (!coinbaseInstance.getUser().getBalance().minus(p).isNegative()) {
+                    CONVERSION_RATEUSD = coinbaseInstance.getExchangeRates().get("usd_to_btc");
+                    CONVERSION_RATEEUR = coinbaseInstance.getExchangeRates().get("eur_to_btc");
+                    String preco = Double.toString(products.get(productId).getPrice().getAmount());
+                    String currency = products.get(productId).getPrice().getCurrency();
                     com.coinbase.api.entity.Transaction coinbasetransaction = new com.coinbase.api.entity.Transaction();
                     coinbasetransaction.setTo(BitcoinTransactionService.EMAIL); //mail da coinbase ou bitcoin address
-                    coinbasetransaction.setAmount(Money.parse("BTC " + preco));
+                    coinbasetransaction.setAmount(Money.parse(currency + preco));
                     coinbaseInstance.sendMoney(coinbasetransaction);
                     String hash = coinbasetransaction.getHash();
                     addCBtransaction(productId,payerId,hash);
                 }
                 transaction = transactionFactory.create(sellerId, payerId, paymentMethodId,productId, status, metadata, null, null, null,null);
-            }catch(Exception e){ e.printStackTrace();}
+            }catch(Exception e){
+                transaction = transactionFactory.create(sellerId, payerId, paymentMethodId,productId, Transaction.Status.FAILED,
+                        metadata, null, null, null,null);
+                e.printStackTrace();
+                saveTransaction(transaction);
+            }
         }
         if(transaction != null) {
-            saveTransaction(transaction).andThen(Single.just(transaction));
+            saveTransaction(transaction);
         }
         else{
             transaction = transactionFactory.create(sellerId, payerId, paymentMethodId,productId, Transaction.Status.FAILED,
                     metadata, null, null, null,null);
-            saveTransaction(transaction).andThen(Single.just(transaction));
+            saveTransaction(transaction);
         }
         return Single.just(transaction);
     }
@@ -286,6 +236,12 @@ public class BitcoinTransactionService implements TransactionService {
 
     public void addCBtransaction(String productID, String payerID, String hash){
         coinbaseCBTransactionList.put(concat(productID,payerID),hash);
+    }
+
+    private boolean isCoinbase(int paymentMethod){
+        return (paymentMethod == PaymentMethodMapper.BITCOIN ||
+                paymentMethod == PaymentMethodMapper.ETHEREUM ||
+                paymentMethod == PaymentMethodMapper.LITECOIN);
     }
 
 }

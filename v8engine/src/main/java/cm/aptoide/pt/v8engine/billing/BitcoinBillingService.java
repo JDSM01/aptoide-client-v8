@@ -75,23 +75,11 @@ public class BitcoinBillingService implements BillingService {
 
     @Override
     public Single<List<PaymentMethod>> getPaymentMethods(Product product) {
-        //if (product instanceof PaidAppProduct) {
             List<PaymentMethod> paymentList = new ArrayList<PaymentMethod>();
             paymentList.add(new PaymentMethod(100, "Bitcoin", "Coinbase Payment"));
+            paymentList.add(new PaymentMethod(101, "Other", "Just for test"));
+         //   paymentList.add(new PaymentMethod(102, "Litecoin", "Coinbase Payment"));
             return Single.just(paymentList);
-        /*}
-        if (product instanceof InAppProduct) { //free
-            return getServerSKUs(((InAppProduct) product).getApiVersion(),
-                    ((InAppProduct) product).getPackageName(),
-                    Collections.singletonList(((InAppProduct) product).getSku()),
-                    ((InAppProduct) product).getType(), false).map(response -> response.getPaymentServices())
-                    .map(response -> paymentMethodMapper.map(response));
-        }
-
-        throw new IllegalArgumentException("Invalid product. Must be "
-                + InAppProduct.class.getSimpleName()
-                + " or "
-                + PaidAppProduct.class.getSimpleName());*/
     }
 
     @Override  public Completable getBilling(String sellerId, String type) {

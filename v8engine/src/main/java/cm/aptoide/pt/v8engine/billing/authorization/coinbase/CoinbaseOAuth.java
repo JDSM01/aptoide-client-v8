@@ -29,9 +29,8 @@ import rx.Single;
 public class CoinbaseOAuth {
     public static String cbredirectUrl;
     private final double CONVERSION_RATE = 0.00024; // From August 14 2017
-    static final String CLIENT_ID = "35193ae7364abb8a1a75bd97b52f437833aa802d9cb43ba8bedd16f64af09ab1";
-    static final String CLIENT_SECRET = "98f9a4e6b144bf5729033fa0eb5a16986c83f48e70446fa7a178be6d7dc3cce0";
-    private static final String EMAIL = "Jose.Messejana@aptoide.com";
+    static final String CLIENT_ID = "";
+    static final String CLIENT_SECRET = "";
     private final BitcoinTransactionService service;
     private String CSRFtoken = null;
     private OAuthTokensResponse tokens;
@@ -115,32 +114,31 @@ public class CoinbaseOAuth {
         return tokens;
     }
 
-    public Single<Boolean> existsToken(){
-      //  return Single.just(false);
+    public void tokenVerification() {
+        //  return Single.just(false);
         OAuthTokensResponse token = existing_tokens.get(service.getCurrentTransaction().getPayerId());
-        try{
-            Coinbase coinbase = new CoinbaseBuilder().withAccessToken(token.getAccessToken()).build();
-            coinbase.getUser();
-            return Single.just(true);
-        } catch(Exception e){ return Single.just(false);
+        if (token != null) {
+            try {
+                Coinbase coinbase = new CoinbaseBuilder().withAccessToken(token.getAccessToken()).build();
+                coinbase.getUser();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+       try {
+           if (!existing_tokens.isEmpty()) {
+               for (OAuthTokensResponse tok : existing_tokens.values()) {
+                   Coinbase coinbase = new CoinbaseBuilder().withAccessToken(tok.getAccessToken()).build();
+                   try {
+                       coinbase.revokeToken();
+                   } catch (Exception e) {
+                       e.printStackTrace();
+                   }
+               }
+           }
+       }catch(Exception e){ e.printStackTrace();}
         }
     }
-
-    public Single<OAuthTokensResponse> getToken(){
-        return Single.just(existing_tokens.get(service.getCurrentTransaction().getPayerId()));
-    }
-//    public void revokeToken(){
-//        if(tokens != null){
-//            try {
-//                coinbaseInstance.revokeToken();
-//            } catch (CoinbaseException e) {
-//                e.printStackTrace();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-
 }
 
 

@@ -28,9 +28,10 @@ import cm.aptoide.pt.v8engine.V8Engine;
 import cm.aptoide.pt.v8engine.billing.Billing;
 import cm.aptoide.pt.v8engine.billing.BillingAnalytics;
 import cm.aptoide.pt.v8engine.billing.PaymentMethod;
+import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
+import cm.aptoide.pt.v8engine.billing.Price;
 import cm.aptoide.pt.v8engine.billing.Product;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
-import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import cm.aptoide.pt.v8engine.networking.image.ImageLoader;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.recycler.displayable.SpannableFactory;
@@ -65,10 +66,8 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private BillingAnalytics billingAnalytics;
   private BillingNavigator billingNavigator;
   private ScrollView scroll;
-  private BitcoinTransactionService bitcoinTransactionService;
-  private boolean pending = false;
+  private Price price = null;
 
-  private final double CONVERSION_RATE = 0.00024; // From August 14 2017
 
   public static Fragment create(Bundle bundle) {
     final PaymentFragment fragment = new PaymentFragment();
@@ -84,7 +83,6 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     billingNavigator =
         new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
             getActivityNavigator(), getFragmentNavigator(), accountManager);
-    bitcoinTransactionService = ((V8Engine) getContext().getApplicationContext()).getBitTransactionService();
   }
 
   @Nullable @Override
@@ -110,14 +108,6 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
 
     cancelButton = (Button) view.findViewById(R.id.include_payment_buttons_cancel_button);
     buyButton = (Button) view.findViewById(R.id.include_payment_buttons_buy_button);
-//    isPending().subscribe(pending -> {
-//      if (pending) {
-//        buyButton.setEnabled(false);
-//        buyButton.setVisibility(View.GONE);
-//        buyButton.setText("Pending");
-//        buyButton.setVisibility(View.VISIBLE);
-//      }
-//     }, throwable -> throwable.printStackTrace());
 
     paymentMap = new SparseArray<>();
     networkErrorDialog =
@@ -129,7 +119,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
             .setPositiveButton(android.R.string.ok)
             .build();
 
-    attachPresenter(new PaymentPresenter(this, billing, billingNavigator, billingAnalytics, bitcoinTransactionService,
+    attachPresenter(new PaymentPresenter(this, billing, billingNavigator, billingAnalytics,
         getArguments().getString(PaymentActivity.EXTRA_APPLICATION_ID),
         getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),
         getArguments().getString(PaymentActivity.EXTRA_DEVELOPER_PAYLOAD)), savedInstanceState);
@@ -162,7 +152,8 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   @Override public Observable<PaymentMethod> selectPaymentEvent() {
     return RxRadioGroup.checkedChanges(paymentRadioGroup)
         .map(paymentId -> paymentMap.get(paymentId))
-        .filter(PaymentMethod -> PaymentMethod != null);
+        .filter(PaymentMethod -> PaymentMethod != null)
+            .doOnNext(PaymentMethod -> change(PaymentMethod));
   }
 
   @Override public Observable<Void> cancelEvent() {
@@ -233,13 +224,11 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
         .load(product.getIcon(), productIcon);
     productName.setText(product.getTitle());
     productDescription.setText(product.getDescription());
-    /*productPrice.setText(product.getPrice()
+    price = product.getPrice();
+    productPrice.setText(product.getPrice()
         .getCurrencySymbol() + " " + product.getPrice()
         .getAmount());
-        */
-    NumberFormat formatter = new DecimalFormat("#.###############"); //Next 3 lines added Jose
-    String price = formatter.format(product.getPrice().getAmount()*CONVERSION_RATE);
-    productPrice.setText(price+" BTC");
+
   }
 
   @Override public void hidePaymentLoading() {
@@ -291,33 +280,24 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     }
   }
 
-  //Change TS to CB for real transaction
-//  private Single<Boolean> isPending() {
-//
-//    return productProvider.getProduct().map(product -> {
-//      Transaction aptoideTransaction = bitcoinTransactionService.getTransaction();
-//      if (aptoideTransaction != null) {
-//        if(!BitcoinBillingService.REALTRANSACTION) {
-//          TransactionSimulator transactionSimulator = bitcoinTransactionService.getTStransaction(product.getId(), aptoideTransaction.getPayerId());
-//          if (transactionSimulator != null) {
-//            if (transactionSimulator.getStatus().equals(TransactionSimulator.Estado.PENDING)) {
-//              pending = true;
-//              return true;
-//            }
-//          }
-//        } else{
-//          com.coinbase.api.entity.Transaction cbtransaction = bitcoinTransactionService.getCBtransaction(product.getId(), aptoideTransaction.getPayerId());
-//          if (cbtransaction != null) {
-//            if (cbtransaction.getDetailedStatus().equals(com.coinbase.api.entity.Transaction.DetailedStatus.PENDING)) {
-//              pending = true;
-//              return true;
-//            }
-//          }
-//        }
-//      }
-//      pending = false;
-//      return false;
-//    });
-//
-//  }
+  private void change(PaymentMethod b){
+    if(price != null) {
+      if (b.getId() == PaymentMethodMapper.BITCOIN && (price.getCurrency().equals("USD") || price.getCurrency().equals("EUR"))) {
+        Double d = 0.0;
+        if(price.getCurrency().equals("USD")) {
+           d = price.getAmount() * BitcoinTransactionService.CONVERSION_RATEUSD.doubleValue();
+        }
+        if(price.getCurrency().equals("EUR")) {
+          d = price.getAmount() * BitcoinTransactionService.CONVERSION_RATEEUR.doubleValue();
+        }
+        NumberFormat formatter = new DecimalFormat("#");
+        formatter.setMaximumFractionDigits(8);
+        productPrice.setText(formatter.format(d) +" BTC");
+      }
+      else{
+        productPrice.setText(price.getCurrencySymbol() + " " + price.getAmount());
+      }
+    }
+  }
 }
+

@@ -1,7 +1,5 @@
 package cm.aptoide.pt.v8engine.billing.view.bitcoin;
 
-import cm.aptoide.pt.logger.Logger;
-
 /**
  * Created by jose_messejana on 11-08-2017.
  */
@@ -20,7 +18,6 @@ public class TransactionSimulator{
     }
 
     public void startThread(){
-        Logger.e("teste3",TIME_FOR_TEST_TRANSACTION+"sec passed");
         status = Estado.COMPLETED;
             }
 

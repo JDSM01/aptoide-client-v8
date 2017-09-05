@@ -5,7 +5,6 @@ import com.jakewharton.rxrelay.PublishRelay;
 import java.util.HashMap;
 import java.util.Map;
 
-import cm.aptoide.pt.logger.Logger;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -52,7 +51,6 @@ public class BitCoinTransactionPersistence implements TransactionPersistence {
 
     @Override
     public Completable saveTransaction(Transaction transaction) {
-        Logger.e("teste3","persistence"+transaction.getStatus().toString());
         return Completable.fromAction(() -> {
             transactionList.put((transaction.getProductId() + transaction.getPayerId()), transaction);
             transactionRelay.call(transaction);

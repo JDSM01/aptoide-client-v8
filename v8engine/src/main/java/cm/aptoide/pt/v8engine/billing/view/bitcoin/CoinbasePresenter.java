@@ -52,10 +52,6 @@ public class CoinbasePresenter implements Presenter {
     private void onViewCreateBitcoinPayment() {
             view.getLifecycle()
                     .filter(event -> event.equals(View.LifecycleEvent.CREATE)).observeOn(Schedulers.io())
-                    //.flatMapSingle(exists -> coinbaseOAuth.existsToken())
-                    //.flatMapSingle(exists -> {
-                    //    if (exists){ tokenexists = true; /*return Single.just(REDIRECT_URI);*/ }
-                    //    else{ tokenexists = false; }return coinbaseOAuth.beginAuth(REDIRECT_URI); })
                     .flatMapSingle(__ -> coinbaseOAuth.beginAuth(REDIRECT_URI)).observeOn(AndroidSchedulers.mainThread())
                     .doOnNext(uri -> view.loadWebsitewithContainingRedirect(uri.toString(), REDIRECT_URI))
                     .compose(view.bindUntilEvent(View.LifecycleEvent.DESTROY))

@@ -6,20 +6,18 @@ import com.coinbase.api.Coinbase;
 import com.coinbase.api.CoinbaseBuilder;
 import com.coinbase.api.entity.OAuthCodeRequest;
 import com.coinbase.api.entity.OAuthTokensResponse;
-import com.coinbase.api.entity.Transaction;
 import com.coinbase.api.exception.CoinbaseException;
 import com.coinbase.api.exception.UnauthorizedException;
 
 import org.joda.money.Money;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import cm.aptoide.pt.logger.Logger;
 import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
-import cm.aptoide.pt.v8engine.billing.view.bitcoin.TransactionSimulator;
 import rx.Single;
 
 /**
@@ -28,21 +26,14 @@ import rx.Single;
 
 public class CoinbaseOAuth {
     public static String cbredirectUrl;
-    private final double CONVERSION_RATE = 0.00024; // From August 14 2017
     static final String CLIENT_ID = "";
     static final String CLIENT_SECRET = "";
     private final BitcoinTransactionService service;
     private String CSRFtoken = null;
     private OAuthTokensResponse tokens;
-    private Coinbase coinbaseInstance = null;
-    private Transaction bitCBTransaction = null;
-    private TransactionSimulator bitcoinTransactionSimulator = null;
     private Map<String, OAuthTokensResponse> existing_tokens = new HashMap<>();
-    private Map<String, Coinbase> existing_instance = new HashMap<>();
-    private double price;
 
     public CoinbaseOAuth(BitcoinTransactionService service){
-
         this.service = service;
     }
 
@@ -61,13 +52,13 @@ public class CoinbaseOAuth {
 
     public Single<Uri> beginAuth(String redirectUri){
         try {
-            OAuthCodeRequest.Meta meta = null; // Comment this line to sendCoins
+            OAuthCodeRequest.Meta meta = null;
             String scope = "user";
             if(BitcoinTransactionService.REALTRANSACTION) {
                  meta = new OAuthCodeRequest.Meta();
                  meta.setSendLimitAmount(Money.parse("USD 1.0"));
                  meta.setSendLimitPeriod(OAuthCodeRequest.Meta.Period.DAILY);
-                 scope = "user,send"; // wallet:transactions:transfer
+                 scope = "user,send";
             }
             Coinbase coinbase = (new CoinbaseBuilder()).build();
             OAuthCodeRequest request = new OAuthCodeRequest();
@@ -110,34 +101,52 @@ public class CoinbaseOAuth {
             }
         } catch(UnauthorizedException e){e.printStackTrace();}
         catch(Exception e){e.printStackTrace();}
-        Logger.e("teste3","not here");
         return tokens;
     }
 
-    public void tokenVerification() {
-        //  return Single.just(false);
-        OAuthTokensResponse token = existing_tokens.get(service.getCurrentTransaction().getPayerId());
-        if (token != null) {
-            try {
-                Coinbase coinbase = new CoinbaseBuilder().withAccessToken(token.getAccessToken()).build();
-                coinbase.getUser();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-       try {
-           if (!existing_tokens.isEmpty()) {
-               for (OAuthTokensResponse tok : existing_tokens.values()) {
-                   Coinbase coinbase = new CoinbaseBuilder().withAccessToken(tok.getAccessToken()).build();
-                   try {
-                       coinbase.revokeToken();
-                   } catch (Exception e) {
-                       e.printStackTrace();
-                   }
-               }
-           }
-       }catch(Exception e){ e.printStackTrace();}
+//    public void tokenVerification() {
+//        OAuthTokensResponse token = existing_tokens.get(service.getCurrentTransaction().getPayerId());
+//        if (token != null) {
+//            try {
+//                Coinbase coinbase = new CoinbaseBuilder().withAccessToken(token.getAccessToken()).build();
+//                coinbase.getUser();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        } else {
+//       try {
+//           if (!existing_tokens.isEmpty()) {
+//               for (OAuthTokensResponse tok : existing_tokens.values()) {
+//                   Coinbase coinbase = new CoinbaseBuilder().withAccessToken(tok.getAccessToken()).build();
+//                   try {
+//                       coinbase.revokeToken();
+//                   } catch (Exception e) {
+//                       e.printStackTrace();
+//                   }
+//               }
+//           }
+//       }catch(Exception e){ e.printStackTrace();}
+//        }
+//    }
+
+    public static BigDecimal getConversionRateusd(){
+        Coinbase coinbaseInstance = (new CoinbaseBuilder()).build();
+        try {
+            return coinbaseInstance.getExchangeRates().get("usd_to_btc");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return BigDecimal.valueOf(0);
+    }
+
+    public static BigDecimal getConversionRateeur(){
+        Coinbase coinbaseInstance = (new CoinbaseBuilder()).build();
+        try {
+            return coinbaseInstance.getExchangeRates().get("eur_to_btc");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return BigDecimal.valueOf(0);
     }
 }
 

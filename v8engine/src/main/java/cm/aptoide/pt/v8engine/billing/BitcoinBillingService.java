@@ -38,7 +38,6 @@ import rx.Single;
  */
 //V8Engine.java
 public class BitcoinBillingService implements BillingService {
-    public static final boolean REALTRANSACTION = false;
     private final BodyInterceptor<BaseBody> bodyInterceptorV3;
     private final OkHttpClient httpClient;
     private final Converter.Factory converterFactory;
@@ -78,7 +77,6 @@ public class BitcoinBillingService implements BillingService {
             List<PaymentMethod> paymentList = new ArrayList<PaymentMethod>();
             paymentList.add(new PaymentMethod(100, "Bitcoin", "Coinbase Payment"));
             paymentList.add(new PaymentMethod(101, "Other", "Just for test"));
-         //   paymentList.add(new PaymentMethod(102, "Litecoin", "Coinbase Payment"));
             return Single.just(paymentList);
     }
 

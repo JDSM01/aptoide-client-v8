@@ -66,12 +66,6 @@ public class BillingNavigator {
       case PaymentMethodMapper.BITCOIN:
         fragmentNavigator.navigateTo(CoinbaseFragment.create(bundle));
         break;
-//      case PaymentMethodMapper.ETHEREUM:
-//        fragmentNavigator.navigateTo(CoinbaseFragment.create(bundle));
-//        break;
-//      case PaymentMethodMapper.LITECOIN:
-//        fragmentNavigator.navigateTo(CoinbaseFragment.create(bundle));
-//        break;
       case PaymentMethodMapper.MOL_POINTS:
         fragmentNavigator.navigateTo(MolFragment.create(bundle));
         break;

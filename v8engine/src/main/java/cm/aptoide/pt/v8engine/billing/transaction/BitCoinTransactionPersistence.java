@@ -44,6 +44,7 @@ public class BitCoinTransactionPersistence implements TransactionPersistence {
 
     @Override
     public Completable removeTransaction(String sellerId, String payerId, String productId) {
+        bitcoinTransactionService.remove(productId+payerId);
        return Completable.fromAction(() -> {
            transactionList.remove(productId+payerId);
        });

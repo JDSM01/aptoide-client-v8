@@ -826,9 +826,7 @@ public abstract class V8Engine extends Application {
     public BitcoinTransactionService getBitTransactionService() {
         if (bitTransactionService == null) {
             bitTransactionService =
-                    new BitcoinTransactionService(getTransactionMapper(), getBaseBodyInterceptorV3(),
-                            WebService.getDefaultConverter(), getDefaultClient(), getTokenInvalidator(),
-                            getDefaultSharedPreferences(), getTransactionFactory());
+                    new BitcoinTransactionService(getTransactionFactory());
         }
         return bitTransactionService;
     }

@@ -52,10 +52,6 @@ public class PaymentMethodMapper {
       case SANDBOX:
       case BITCOIN:
         return new PaymentMethod(response.getId(), response.getName(), response.getDescription());
-//      case ETHEREUM:
-//        return new PaymentMethod(response.getId(), response.getName(), response.getDescription());
-//      case LITECOIN:
-//        return new PaymentMethod(response.getId(), response.getName(), response.getDescription());
       default:
         throw new IllegalArgumentException("Payment not supported: " + response.getName());
     }

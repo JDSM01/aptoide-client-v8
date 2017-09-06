@@ -114,6 +114,11 @@ public class Billing {
         return Single.just(new SimplePurchase(SimplePurchase.Status.PENDING, productId));
       }
 
+      if (transaction.isFailed()){
+        transactionRepository.remove(productId,sellerId);
+        return Single.just(new SimplePurchase(SimplePurchase.Status.FAILED, productId));
+      }
+
       if (transaction.isNew() || transaction.isFailed() || transaction.isPendingAuthorization()) {
         return Single.just(new SimplePurchase(SimplePurchase.Status.NEW, productId));
       }

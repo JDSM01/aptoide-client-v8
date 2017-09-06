@@ -49,7 +49,6 @@ public class CoinbaseFragment extends WebViewFragment implements WebView{
                 new BillingNavigator(new PurchaseBundleMapper(new PaymentThrowableCodeMapper()),
                         getActivityNavigator(), getFragmentNavigator(), accountManager),
                 getArguments().getString(PaymentActivity.EXTRA_APPLICATION_ID),
-                getArguments().getString(PaymentActivity.EXTRA_PAYMENT_METHOD_NAME),
                 getArguments().getString(PaymentActivity.EXTRA_PRODUCT_ID),coinbaseOAuth), savedInstanceState);
     }
 }

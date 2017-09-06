@@ -31,13 +31,14 @@ import cm.aptoide.pt.v8engine.billing.PaymentMethod;
 import cm.aptoide.pt.v8engine.billing.PaymentMethodMapper;
 import cm.aptoide.pt.v8engine.billing.Price;
 import cm.aptoide.pt.v8engine.billing.Product;
-import cm.aptoide.pt.v8engine.billing.transaction.BitcoinTransactionService;
+import cm.aptoide.pt.v8engine.billing.authorization.coinbase.CoinbaseOAuth;
 import cm.aptoide.pt.v8engine.networking.image.ImageLoader;
 import cm.aptoide.pt.v8engine.view.permission.PermissionServiceFragment;
 import cm.aptoide.pt.v8engine.view.recycler.displayable.SpannableFactory;
 import cm.aptoide.pt.v8engine.view.rx.RxAlertDialog;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 public class PaymentFragment extends PermissionServiceFragment implements PaymentView {
 
@@ -67,6 +68,7 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   private BillingNavigator billingNavigator;
   private ScrollView scroll;
   private Price price = null;
+  private double bitprice;
 
 
   public static Fragment create(Bundle bundle) {
@@ -152,8 +154,9 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
   @Override public Observable<PaymentMethod> selectPaymentEvent() {
     return RxRadioGroup.checkedChanges(paymentRadioGroup)
         .map(paymentId -> paymentMap.get(paymentId))
-        .filter(PaymentMethod -> PaymentMethod != null)
-            .doOnNext(PaymentMethod -> change(PaymentMethod));
+        .filter(PaymentMethod -> PaymentMethod != null).observeOn(Schedulers.io())
+            .doOnNext(PaymentMethod -> exchangerate(PaymentMethod)).observeOn(AndroidSchedulers.mainThread())
+            .doOnNext(__ -> change());
   }
 
   @Override public Observable<Void> cancelEvent() {
@@ -280,23 +283,28 @@ public class PaymentFragment extends PermissionServiceFragment implements Paymen
     }
   }
 
-  private void change(PaymentMethod b){
-    if(price != null) {
-      if (b.getId() == PaymentMethodMapper.BITCOIN && (price.getCurrency().equals("USD") || price.getCurrency().equals("EUR"))) {
-        Double d = 0.0;
-        if(price.getCurrency().equals("USD")) {
-           d = price.getAmount() * BitcoinTransactionService.CONVERSION_RATEUSD.doubleValue();
+  private void change(){
+        if(bitprice != 0) {
+          NumberFormat formatter = new DecimalFormat("#.#");
+          formatter.setMaximumFractionDigits(8);
+          productPrice.setText(formatter.format(bitprice) + " BTC");
         }
-        if(price.getCurrency().equals("EUR")) {
-          d = price.getAmount() * BitcoinTransactionService.CONVERSION_RATEEUR.doubleValue();
+        else {
+          productPrice.setText(price.getCurrencySymbol() + " " + price.getAmount());
         }
-        NumberFormat formatter = new DecimalFormat("#");
-        formatter.setMaximumFractionDigits(8);
-        productPrice.setText(formatter.format(d) +" BTC");
+  }
+  //Apenas para informar o user da quantidade em BTC que vai pagar, no billing é posto em USD e é convertido na altura de em que é enviado. Deveria ser fora do fragment, mas por falta de tempo e por ser um proof of concept, na realidade poderia ficar na BD
+  private void exchangerate(PaymentMethod paymentMethod){
+    if(paymentMethod.getId() == PaymentMethodMapper.BITCOIN && price != null) {
+      if (price.getCurrency().equals("USD")) {
+        bitprice = price.getAmount() * CoinbaseOAuth.getConversionRateusd().doubleValue();
       }
-      else{
-        productPrice.setText(price.getCurrencySymbol() + " " + price.getAmount());
+      if (price.getCurrency().equals("EUR")) {
+        bitprice = price.getAmount() * CoinbaseOAuth.getConversionRateeur().doubleValue();
       }
+    }
+    else{
+      bitprice = 0;
     }
   }
 }

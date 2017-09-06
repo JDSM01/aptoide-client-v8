@@ -23,19 +23,16 @@ public class CoinbasePresenter implements Presenter {
     private final BillingAnalytics analytics;
     private final BillingNavigator navigator;
     private final String sellerId;
-    private final String paymentMethodName;
     private final String productId;
     private CoinbaseOAuth coinbaseOAuth;
-    private boolean tokenexists = false;
 
     public CoinbasePresenter(WebViewFragment view, Billing billing, BillingAnalytics analytics,
-                             BillingNavigator navigator, String sellerId, String paymentMethodName, String productId, CoinbaseOAuth coinbaseOAuth) {
+                             BillingNavigator navigator, String sellerId, String productId, CoinbaseOAuth coinbaseOAuth) {
         this.view = view;
         this.billing = billing;
         this.analytics = analytics;
         this.navigator = navigator;
         this.sellerId = sellerId;
-        this.paymentMethodName = paymentMethodName;
         this.productId = productId;
         this.coinbaseOAuth = coinbaseOAuth;
 

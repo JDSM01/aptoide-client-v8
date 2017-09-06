@@ -6,7 +6,7 @@ package cm.aptoide.pt.v8engine.billing.view.bitcoin;
 
 public class TransactionSimulator{
     private Estado status;
-    public static final int TIME_FOR_TEST_TRANSACTION = 10000; //10s
+    public static final int TIME_FOR_TEST_TRANSACTION = 15000; //10s
 
 
     public TransactionSimulator(){
